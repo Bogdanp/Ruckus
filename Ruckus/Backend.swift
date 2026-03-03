@@ -3,6 +3,31 @@ import Foundation
 import NoiseBackend
 import NoiseSerde
 
+public struct EvaluateResult: Readable, Sendable, Writable {
+  public let stdout: Data
+  public let stderr: Data
+
+  public init(
+    stdout: Data,
+    stderr: Data
+  ) {
+    self.stdout = stdout
+    self.stderr = stderr
+  }
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> EvaluateResult {
+    return EvaluateResult(
+      stdout: Data.read(from: inp, using: &buf),
+      stderr: Data.read(from: inp, using: &buf)
+    )
+  }
+
+  public func write(to out: OutputPort) {
+    stdout.write(to: out)
+    stderr.write(to: out)
+  }
+}
+
 public final class Backend: Sendable {
   let impl: NoiseBackend.Backend!
 
@@ -10,10 +35,26 @@ public final class Backend: Sendable {
     impl = NoiseBackend.Backend(withZo: zo, andMod: mod, andProc: proc)
   }
 
-  public func installCallback(internalWithId id: UVarint, andAddr addr: Varint) -> Future<String, Void> {
+  public func evaluate(code: String) -> Future<String, EvaluateResult> {
     return impl.send(
       writeProc: { (out: OutputPort) in
         UVarint(0x0000).write(to: out)
+        code.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> EvaluateResult in
+        return EvaluateResult.read(from: inp, using: &buf)
+      }
+    )
+  }
+
+  public func evaluate(code: String) async throws -> EvaluateResult {
+    return try await FutureUtil.asyncify(evaluate(code: code))
+  }
+
+  public func installCallback(internalWithId id: UVarint, andAddr addr: Varint) -> Future<String, Void> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0001).write(to: out)
         id.write(to: out)
         addr.write(to: out)
       },
@@ -28,7 +69,7 @@ public final class Backend: Sendable {
   public func ping() -> Future<String, String> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x0001).write(to: out)
+        UVarint(0x0002).write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> String in
         return String.read(from: inp, using: &buf)

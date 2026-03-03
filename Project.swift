@@ -5,11 +5,11 @@ let project = Project(
   settings: .settings(
     base: [
       "SWIFT_VERSION": "6.0",
-      "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+      "STRING_CATALOG_GENERATE_SYMBOLS": "YES"
     ],
     configurations: [
       .debug(name: "Debug", xcconfig: "./xcconfigs/Ruckus-Project.xcconfig"),
-      .release(name: "Release", xcconfig: "./xcconfigs/Ruckus-Project.xcconfig"),
+      .release(name: "Release", xcconfig: "./xcconfigs/Ruckus-Project.xcconfig")
     ]
   ),
   targets: [
@@ -20,26 +20,43 @@ let project = Project(
       bundleId: "io.defn.Ruckus",
       deploymentTargets: .iOS("26.0"),
       sources: ["Ruckus/**"],
-      resources: [.folderReference(path: "Ruckus/res")],
+      resources: [
+        .folderReference(path: "Ruckus/res"),
+        .glob(pattern: "vendor/tree-sitter-racket/queries/highlights.scm")
+      ],
       scripts: [
         .pre(
           script: "swiftlint lint --quiet",
           name: "SwiftLint",
           basedOnDependencyAnalysis: false
-        ),
+        )
       ],
       dependencies: [
         .external(name: "NoiseBackend"),
         .external(name: "NoiseSerde"),
         .external(name: "Noise"),
-        .external(name: "OpenSSL")
+        .external(name: "OpenSSL"),
+        .external(name: "Runestone"),
+        .target(name: "TreeSitterRacket")
       ],
       settings: .settings(
         configurations: [
           .debug(name: "Debug", xcconfig: "./xcconfigs/Ruckus.xcconfig"),
-          .release(name: "Release", xcconfig: "./xcconfigs/Ruckus.xcconfig"),
+          .release(name: "Release", xcconfig: "./xcconfigs/Ruckus.xcconfig")
         ]
       )
     ),
+    .target(
+      name: "TreeSitterRacket",
+      destinations: .iOS,
+      product: .staticLibrary,
+      bundleId: "io.defn.TreeSitterRacket",
+      sources: ["vendor/tree-sitter-racket/src/**"],
+      headers: .headers(public: ["vendor/tree-sitter-racket/bindings/swift/**"]),
+      settings: .settings(base: [
+        "HEADER_SEARCH_PATHS": "$(SRCROOT)/vendor/tree-sitter-racket/src",
+        "MODULEMAP_FILE": "$(SRCROOT)/vendor/tree-sitter-racket.modulemap"
+      ])
+    )
   ]
 )

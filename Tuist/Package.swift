@@ -13,6 +13,7 @@ let package = Package(
   name: "Ruckus",
   dependencies: [
     .package(path: "../../Noise"),
-    .package(url: "https://github.com/krzyzanowskim/OpenSSL", from: "3.6.0001")
+    .package(url: "https://github.com/krzyzanowskim/OpenSSL", from: "3.6.0001"),
+    .package(url: "https://github.com/simonbs/runestone.git", from: "0.5.0")
   ]
 )

@@ -8,6 +8,24 @@
         "revision" : "e7d34385da795aaaeb2212e38c7401e5c333f792",
         "version" : "3.6.1"
       }
+    },
+    {
+      "identity" : "runestone",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/simonbs/runestone.git",
+      "state" : {
+        "revision" : "1fad339aab99cf2136ce6bf8c32da3265b2e85e5",
+        "version" : "0.5.1"
+      }
+    },
+    {
+      "identity" : "tree-sitter",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tree-sitter/tree-sitter",
+      "state" : {
+        "revision" : "98be227227af10cc7a269cb3ffb23686c0610b17",
+        "version" : "0.20.9"
+      }
     }
   ],
   "version" : 2

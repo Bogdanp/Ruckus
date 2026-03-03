@@ -1,0 +1,4 @@
+excluded:
+  - Tuist/.build
+  - Ruckus/Backend.swift
+  - vendor

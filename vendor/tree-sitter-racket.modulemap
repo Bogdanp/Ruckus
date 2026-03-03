@@ -1,0 +1,4 @@
+module TreeSitterRacket {
+    header "tree-sitter-racket/bindings/swift/TreeSitterRacket/racket.h"
+    export *
+}
