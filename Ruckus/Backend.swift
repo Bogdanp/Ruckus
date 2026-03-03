@@ -3,6 +3,38 @@ import Foundation
 import NoiseBackend
 import NoiseSerde
 
+public enum FilesystemEntry: Readable, Sendable, Writable {
+  case file(File)
+  case folder(Folder)
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> FilesystemEntry {
+    let tag = UVarint.read(from: inp, using: &buf)
+    switch tag {
+    case 0x0000:
+      return .file(
+        File.read(from: inp, using: &buf)
+      )
+    case 0x0001:
+      return .folder(
+        Folder.read(from: inp, using: &buf)
+      )
+    default:
+      preconditionFailure("FilesystemEntry: unexpected tag \(tag)")
+    }
+  }
+
+  public func write(to out: OutputPort) {
+    switch self {
+    case .file(let file):
+      UVarint(0x0000).write(to: out)
+      file.write(to: out)
+    case .folder(let folder):
+      UVarint(0x0001).write(to: out)
+      folder.write(to: out)
+    }
+  }
+}
+
 public struct EvaluateResult: Readable, Sendable, Writable {
   public let stdout: Data
   public let stderr: Data
@@ -28,6 +60,51 @@ public struct EvaluateResult: Readable, Sendable, Writable {
   }
 }
 
+public struct File: Readable, Sendable, Writable {
+  public let path: String
+  public let size: UVarint
+
+  public init(
+    path: String,
+    size: UVarint
+  ) {
+    self.path = path
+    self.size = size
+  }
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> File {
+    return File(
+      path: String.read(from: inp, using: &buf),
+      size: UVarint.read(from: inp, using: &buf)
+    )
+  }
+
+  public func write(to out: OutputPort) {
+    path.write(to: out)
+    size.write(to: out)
+  }
+}
+
+public struct Folder: Readable, Sendable, Writable {
+  public let path: String
+
+  public init(
+    path: String
+  ) {
+    self.path = path
+  }
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> Folder {
+    return Folder(
+      path: String.read(from: inp, using: &buf)
+    )
+  }
+
+  public func write(to out: OutputPort) {
+    path.write(to: out)
+  }
+}
+
 public final class Backend: Sendable {
   let impl: NoiseBackend.Backend!
 
@@ -35,10 +112,24 @@ public final class Backend: Sendable {
     impl = NoiseBackend.Backend(withZo: zo, andMod: mod, andProc: proc)
   }
 
-  public func evaluate(code: String) -> Future<String, EvaluateResult> {
+  public func delete(path: String) -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
         UVarint(0x0000).write(to: out)
+        path.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> Void in }
+    )
+  }
+
+  public func delete(path: String) async throws -> Void {
+    return try await FutureUtil.asyncify(delete(path: path))
+  }
+
+  public func evaluate(code: String) -> Future<String, EvaluateResult> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0001).write(to: out)
         code.write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> EvaluateResult in
@@ -51,10 +142,25 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(evaluate(code: code))
   }
 
+  public func getRootPath() -> Future<String, String> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0002).write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> String in
+        return String.read(from: inp, using: &buf)
+      }
+    )
+  }
+
+  public func getRootPath() async throws -> String {
+    return try await FutureUtil.asyncify(getRootPath())
+  }
+
   public func installCallback(internalWithId id: UVarint, andAddr addr: Varint) -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x0001).write(to: out)
+        UVarint(0x0003).write(to: out)
         id.write(to: out)
         addr.write(to: out)
       },
@@ -66,10 +172,26 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(installCallback(internalWithId: id, andAddr: addr))
   }
 
+  public func listFiles(root: String) -> Future<String, [FilesystemEntry]> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0004).write(to: out)
+        root.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> [FilesystemEntry] in
+        return [FilesystemEntry].read(from: inp, using: &buf)
+      }
+    )
+  }
+
+  public func listFiles(root: String) async throws -> [FilesystemEntry] {
+    return try await FutureUtil.asyncify(listFiles(root: root))
+  }
+
   public func ping() -> Future<String, String> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x0002).write(to: out)
+        UVarint(0x0005).write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> String in
         return String.read(from: inp, using: &buf)
@@ -79,5 +201,20 @@ public final class Backend: Sendable {
 
   public func ping() async throws -> String {
     return try await FutureUtil.asyncify(ping())
+  }
+
+  public func save(content: String, to path: String) -> Future<String, Void> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0006).write(to: out)
+        content.write(to: out)
+        path.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> Void in }
+    )
+  }
+
+  public func save(content: String, to path: String) async throws -> Void {
+    return try await FutureUtil.asyncify(save(content: content, to: path))
   }
 }

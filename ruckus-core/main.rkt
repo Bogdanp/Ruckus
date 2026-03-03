@@ -6,7 +6,8 @@
          racket/runtime-path
 
          ;; For effect:
-         "eval.rkt")
+         "eval.rkt"
+         "filesystem.rkt")
 
 (provide
  main)
