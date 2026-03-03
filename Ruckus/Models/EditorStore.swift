@@ -15,7 +15,13 @@ class EditorStore {
   }
 
   func newDocument() {
-    let doc = EditorDocument(title: "Untitled", code: "#lang racket/base\n\n")
+    let doc = EditorDocument(
+      title: "Untitled",
+      code: """
+#lang racket/base
+
+(displayln "Hello, world!")
+""")
     documents.append(doc)
     activeDocumentID = doc.id
   }

@@ -17,7 +17,7 @@ struct CodeEditingView: UIViewRepresentable {
     ("define", "define "), ("let", "let "),
     ("if", "if "), ("cond", "cond "),
     ("case", "case "), ("match", "match "),
-    ("lambda", "lambda "), ("λ", "λ "),
+    ("lambda", "lambda "), ("λ", "λ ")
   ]
 
   func makeUIView(context: Context) -> TextView {
@@ -87,7 +87,7 @@ struct CodeEditingView: UIViewRepresentable {
       stack.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
       stack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
       stack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
-      stack.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
+      stack.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
     ])
 
     return bar
