@@ -122,10 +122,9 @@ struct ContentView: View {
     ToolbarItem(placement: .primaryAction) {
       AsyncButton(
         action: { await evaluate() },
-        options: Set<AsyncButton<Image>.Option>([.disabledWhileRunning, .showsProgressView])
-      ) {
-        Image(systemName: "play.fill")
-      }
+        options: Set<AsyncButton<Image>.Option>([.disabledWhileRunning, .showsProgressView]),
+        label: { Image(systemName: "play.fill") }
+      )
       .disabled(store.activeDocument == nil)
     }
   }
