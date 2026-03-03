@@ -14,6 +14,7 @@ Racket for iOS.
 ### First-time Setup
 
     $ raco pkg install --name ruckus-core/
+    $ tuist install
 
 ### Building
 

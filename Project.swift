@@ -17,6 +17,13 @@ let project = Project(
       deploymentTargets: .iOS("26.0"),
       sources: ["Ruckus/**"],
       resources: [.folderReference(path: "Ruckus/res")],
+      scripts: [
+        .pre(
+          script: "swiftlint lint --quiet",
+          name: "SwiftLint",
+          basedOnDependencyAnalysis: false
+        ),
+      ],
       dependencies: [
         .external(name: "NoiseBackend"),
         .external(name: "NoiseSerde"),
