@@ -26,6 +26,11 @@ let project = Project(
       ],
       scripts: [
         .pre(
+          script: "make -C \"${SRCROOT}\"",
+          name: "Build Racket Core",
+          basedOnDependencyAnalysis: false
+        ),
+        .pre(
           script: "swiftlint lint --quiet",
           name: "SwiftLint",
           basedOnDependencyAnalysis: false

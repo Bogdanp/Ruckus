@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 See README.md for requirements, setup, and build commands.
 
+A pre-build script in `Project.swift` runs `make` automatically before compiling the app. This ensures `Backend.swift` and `res/core.zo` are always regenerated from the Racket source. There is no need to run `make` manually before building in Xcode.
+
 ## Architecture
 
 Racket handles business logic; Swift/SwiftUI provides the iOS UI layer. They communicate via the Noise RPC framework.
