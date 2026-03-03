@@ -3,7 +3,10 @@
 (require noise/backend
          noise/serde
          openssl
-         racket/runtime-path)
+         racket/runtime-path
+
+         ;; For effect:
+         "eval.rkt")
 
 (provide
  main)

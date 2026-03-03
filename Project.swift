@@ -3,6 +3,10 @@ import ProjectDescription
 let project = Project(
   name: "Ruckus",
   settings: .settings(
+    base: [
+      "SWIFT_VERSION": "6.0",
+      "STRING_CATALOG_GENERATE_SYMBOLS": "YES",
+    ],
     configurations: [
       .debug(name: "Debug", xcconfig: "./xcconfigs/Ruckus-Project.xcconfig"),
       .release(name: "Release", xcconfig: "./xcconfigs/Ruckus-Project.xcconfig"),
@@ -33,7 +37,7 @@ let project = Project(
       settings: .settings(
         configurations: [
           .debug(name: "Debug", xcconfig: "./xcconfigs/Ruckus.xcconfig"),
-          .debug(name: "Release", xcconfig: "./xcconfigs/Ruckus.xcconfig"),
+          .release(name: "Release", xcconfig: "./xcconfigs/Ruckus.xcconfig"),
         ]
       )
     ),
