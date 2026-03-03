@@ -3,6 +3,7 @@
 (require noise/backend
          noise/serde
          racket/file
+         racket/port
          racket/promise
          "appdata.rkt")
 
@@ -31,7 +32,7 @@
 (define-rpc (get-root-path : String)
   (path->string (force files-path)))
 
-(define-rpc (list-files [root : String] : (Listof FilesystemEntry))
+(define-rpc (list-files [at-path root : String] : (Listof FilesystemEntry))
   (for/list ([path (in-directory root (λ (_) #f))])
     (if (directory-exists? path)
         (FilesystemEntry.folder (Folder path))
@@ -40,7 +41,7 @@
           #;path (path->string path)
           #;size (file-size path))))))
 
-(define-rpc (save [content : String]
+(define-rpc (save [_ content : String]
                   [to path : String])
   (void
    (call-with-output-file path
@@ -48,5 +49,8 @@
      (lambda (out)
        (write-string content out)))))
 
-(define-rpc (delete [path : String])
+(define-rpc (read-file [at-path path : String] : String)
+  (file->string path))
+
+(define-rpc (delete-file [at-path path : String])
   (delete-file path))

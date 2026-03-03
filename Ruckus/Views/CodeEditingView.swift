@@ -3,6 +3,7 @@ import SwiftUI
 
 struct CodeEditingView: UIViewRepresentable {
   @Binding var text: String
+  @Binding var textViewUndoManager: UndoManager?
 
   func makeCoordinator() -> Coordinator {
     Coordinator(text: $text)
@@ -17,6 +18,9 @@ struct CodeEditingView: UIViewRepresentable {
     textView.indentStrategy = .space(length: 2)
     let state = TextViewState(text: text, theme: DefaultTheme(), language: .racket)
     textView.setState(state)
+    DispatchQueue.main.async {
+      textViewUndoManager = textView.undoManager
+    }
     return textView
   }
 

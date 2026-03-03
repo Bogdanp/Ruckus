@@ -112,7 +112,7 @@ public final class Backend: Sendable {
     impl = NoiseBackend.Backend(withZo: zo, andMod: mod, andProc: proc)
   }
 
-  public func delete(path: String) -> Future<String, Void> {
+  public func deleteFile(atPath path: String) -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
         UVarint(0x0000).write(to: out)
@@ -122,8 +122,8 @@ public final class Backend: Sendable {
     )
   }
 
-  public func delete(path: String) async throws -> Void {
-    return try await FutureUtil.asyncify(delete(path: path))
+  public func deleteFile(atPath path: String) async throws -> Void {
+    return try await FutureUtil.asyncify(deleteFile(atPath: path))
   }
 
   public func evaluate(code: String) -> Future<String, EvaluateResult> {
@@ -172,7 +172,7 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(installCallback(internalWithId: id, andAddr: addr))
   }
 
-  public func listFiles(root: String) -> Future<String, [FilesystemEntry]> {
+  public func listFiles(atPath root: String) -> Future<String, [FilesystemEntry]> {
     return impl.send(
       writeProc: { (out: OutputPort) in
         UVarint(0x0004).write(to: out)
@@ -184,8 +184,8 @@ public final class Backend: Sendable {
     )
   }
 
-  public func listFiles(root: String) async throws -> [FilesystemEntry] {
-    return try await FutureUtil.asyncify(listFiles(root: root))
+  public func listFiles(atPath root: String) async throws -> [FilesystemEntry] {
+    return try await FutureUtil.asyncify(listFiles(atPath: root))
   }
 
   public func ping() -> Future<String, String> {
@@ -203,10 +203,26 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(ping())
   }
 
-  public func save(content: String, to path: String) -> Future<String, Void> {
+  public func readFile(atPath path: String) -> Future<String, String> {
     return impl.send(
       writeProc: { (out: OutputPort) in
         UVarint(0x0006).write(to: out)
+        path.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> String in
+        return String.read(from: inp, using: &buf)
+      }
+    )
+  }
+
+  public func readFile(atPath path: String) async throws -> String {
+    return try await FutureUtil.asyncify(readFile(atPath: path))
+  }
+
+  public func save(_ content: String, to path: String) -> Future<String, Void> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0007).write(to: out)
         content.write(to: out)
         path.write(to: out)
       },
@@ -214,7 +230,7 @@ public final class Backend: Sendable {
     )
   }
 
-  public func save(content: String, to path: String) async throws -> Void {
-    return try await FutureUtil.asyncify(save(content: content, to: path))
+  public func save(_ content: String, to path: String) async throws -> Void {
+    return try await FutureUtil.asyncify(save(content, to: path))
   }
 }
