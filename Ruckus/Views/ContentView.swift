@@ -14,7 +14,13 @@ struct ContentView: View {
           documents: store.documents,
           activeDocumentID: store.activeDocumentID,
           onSelect: { store.activeDocumentID = $0.id },
-          onClose: { store.close($0) },
+          onClose: { doc in
+            if let id = doc.executionId {
+              AppDelegate.unregister(executionId: id)
+              Task { try? await Backend.shared.stopExecution(id) }
+            }
+            store.close(doc)
+          },
           onNew: { store.newDocument() }
         )
         if let doc = store.activeDocument {
@@ -31,14 +37,16 @@ struct ContentView: View {
           .id(doc.id)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           if !doc.output.isEmpty {
+            Divider()
             ScrollView {
               Text(doc.output)
-                .font(.system(.body, design: .monospaced))
+                .font(.system(.caption, design: .monospaced))
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
+                .textSelection(.enabled)
+                .padding(8)
             }
+            .defaultScrollAnchor(.bottom)
             .frame(maxHeight: 200)
-            .background(.bar)
           }
         }
       }
@@ -120,24 +128,48 @@ struct ContentView: View {
   @ToolbarContentBuilder
   private func trailingToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .primaryAction) {
-      AsyncButton(
-        action: { await evaluate() },
-        options: Set<AsyncButton<Image>.Option>([.disabledWhileRunning, .showsProgressView]),
-        label: { Image(systemName: "play.fill") }
-      )
-      .disabled(store.activeDocument == nil)
+      if store.activeDocument?.isEvaluating == true {
+        Button {
+          Task { await stopExecution() }
+        } label: {
+          Image(systemName: "stop.fill")
+        }
+      } else {
+        Button {
+          Task { await execute() }
+        } label: {
+          Image(systemName: "play.fill")
+        }
+        .disabled(store.activeDocument == nil)
+      }
     }
   }
 
-  private func evaluate() async {
+  private func execute() async {
     guard let doc = store.activeDocument else { return }
+    if doc.isDirty {
+      await saveDocument(doc)
+    }
+    guard let path = doc.path else { return }
+    doc.output = ""
+    doc.isEvaluating = true
     do {
-      let result = try await Backend.shared.evaluate(code: doc.code)
-      let stdout = String(decoding: result.stdout, as: UTF8.self)
-      let stderr = String(decoding: result.stderr, as: UTF8.self)
-      doc.output = stdout + stderr
+      let id = try await Backend.shared.executeScript(atPath: path)
+      doc.executionId = id
+      AppDelegate.register(doc, executionId: id)
+      AppDelegate.step(id)
     } catch {
       doc.output = error.localizedDescription
+      doc.isEvaluating = false
+    }
+  }
+
+  private func stopExecution() async {
+    guard let doc = store.activeDocument, let id = doc.executionId else { return }
+    do {
+      try await Backend.shared.stopExecution(id)
+    } catch {
+      doc.output += "\nStop failed: \(error.localizedDescription)"
     }
   }
 

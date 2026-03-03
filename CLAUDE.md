@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 See README.md for requirements, setup, and build commands.
 
+To build from the command line:
+
+    xcodebuild -workspace Ruckus.xcworkspace -scheme Ruckus -destination 'generic/platform=iOS' build
+
 A pre-build script in `Project.swift` runs `make` automatically before compiling the app. This ensures `Backend.swift` and `res/core.zo` are always regenerated from the Racket source. There is no need to run `make` manually before building in Xcode.
 
 ## Architecture
@@ -33,6 +37,10 @@ Flow: `ruckus-core/*.rkt` → `make` → `Backend.swift` (auto-generated) + `res
 ## Tuist
 
 After modifying `Project.swift`, always run `tuist generate --no-open` to verify.
+
+## Linting
+
+Always run `swiftlint lint` after modifying Swift files and fix any violations before finishing.
 
 ## Swift Configuration
 

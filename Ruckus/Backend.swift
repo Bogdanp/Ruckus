@@ -3,6 +3,38 @@ import Foundation
 import NoiseBackend
 import NoiseSerde
 
+public enum ExecutionStep: Readable, Sendable, Writable {
+  case done(ExecutionOutput)
+  case more(ExecutionOutput)
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> ExecutionStep {
+    let tag = UVarint.read(from: inp, using: &buf)
+    switch tag {
+    case 0x0000:
+      return .done(
+        ExecutionOutput.read(from: inp, using: &buf)
+      )
+    case 0x0001:
+      return .more(
+        ExecutionOutput.read(from: inp, using: &buf)
+      )
+    default:
+      preconditionFailure("ExecutionStep: unexpected tag \(tag)")
+    }
+  }
+
+  public func write(to out: OutputPort) {
+    switch self {
+    case .done(let output):
+      UVarint(0x0000).write(to: out)
+      output.write(to: out)
+    case .more(let output):
+      UVarint(0x0001).write(to: out)
+      output.write(to: out)
+    }
+  }
+}
+
 public enum FilesystemEntry: Readable, Sendable, Writable {
   case file(File)
   case folder(Folder)
@@ -35,7 +67,7 @@ public enum FilesystemEntry: Readable, Sendable, Writable {
   }
 }
 
-public struct EvaluateResult: Readable, Sendable, Writable {
+public struct ExecutionOutput: Readable, Sendable, Writable {
   public let stdout: Data
   public let stderr: Data
 
@@ -47,8 +79,8 @@ public struct EvaluateResult: Readable, Sendable, Writable {
     self.stderr = stderr
   }
 
-  public static func read(from inp: InputPort, using buf: inout Data) -> EvaluateResult {
-    return EvaluateResult(
+  public static func read(from inp: InputPort, using buf: inout Data) -> ExecutionOutput {
+    return ExecutionOutput(
       stdout: Data.read(from: inp, using: &buf),
       stderr: Data.read(from: inp, using: &buf)
     )
@@ -126,20 +158,20 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(deleteFile(atPath: path))
   }
 
-  public func evaluate(code: String) -> Future<String, EvaluateResult> {
+  public func executeScript(atPath path: String) -> Future<String, UVarint> {
     return impl.send(
       writeProc: { (out: OutputPort) in
         UVarint(0x0001).write(to: out)
-        code.write(to: out)
+        path.write(to: out)
       },
-      readProc: { (inp: InputPort, buf: inout Data) -> EvaluateResult in
-        return EvaluateResult.read(from: inp, using: &buf)
+      readProc: { (inp: InputPort, buf: inout Data) -> UVarint in
+        return UVarint.read(from: inp, using: &buf)
       }
     )
   }
 
-  public func evaluate(code: String) async throws -> EvaluateResult {
-    return try await FutureUtil.asyncify(evaluate(code: code))
+  public func executeScript(atPath path: String) async throws -> UVarint {
+    return try await FutureUtil.asyncify(executeScript(atPath: path))
   }
 
   public func getRootPath() -> Future<String, String> {
@@ -188,10 +220,23 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(listFiles(atPath: root))
   }
 
-  public func ping() -> Future<String, String> {
+  public func markOnExecutorStepInstalled() -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
         UVarint(0x0005).write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> Void in }
+    )
+  }
+
+  public func markOnExecutorStepInstalled() async throws -> Void {
+    return try await FutureUtil.asyncify(markOnExecutorStepInstalled())
+  }
+
+  public func ping() -> Future<String, String> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0006).write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> String in
         return String.read(from: inp, using: &buf)
@@ -206,7 +251,7 @@ public final class Backend: Sendable {
   public func readFile(atPath path: String) -> Future<String, String> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x0006).write(to: out)
+        UVarint(0x0007).write(to: out)
         path.write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> String in
@@ -222,7 +267,7 @@ public final class Backend: Sendable {
   public func save(_ content: String, to path: String) -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x0007).write(to: out)
+        UVarint(0x0008).write(to: out)
         content.write(to: out)
         path.write(to: out)
       },
@@ -232,5 +277,44 @@ public final class Backend: Sendable {
 
   public func save(_ content: String, to path: String) async throws -> Void {
     return try await FutureUtil.asyncify(save(content, to: path))
+  }
+
+  public func stepExecution(_ id: UVarint) -> Future<String, ExecutionStep> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0009).write(to: out)
+        id.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> ExecutionStep in
+        return ExecutionStep.read(from: inp, using: &buf)
+      }
+    )
+  }
+
+  public func stepExecution(_ id: UVarint) async throws -> ExecutionStep {
+    return try await FutureUtil.asyncify(stepExecution(id))
+  }
+
+  public func stopExecution(_ id: UVarint) -> Future<String, Void> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x000a).write(to: out)
+        id.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> Void in }
+    )
+  }
+
+  public func stopExecution(_ id: UVarint) async throws -> Void {
+    return try await FutureUtil.asyncify(stopExecution(id))
+  }
+
+  public func installCallback(onExecutorStep proc: @escaping @Sendable (UVarint) -> Void) -> Future<String, Void> {
+    return NoiseBackend.installCallback(id: 0, rpc: self.installCallback(internalWithId:andAddr:)) { inp in
+      var buf = Data(count: 8*1024)
+      proc(
+        UVarint.read(from: inp, using: &buf)
+      )
+    }
   }
 }

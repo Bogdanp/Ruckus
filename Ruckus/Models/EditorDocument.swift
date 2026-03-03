@@ -9,6 +9,7 @@ class EditorDocument: Identifiable {
   var output: String = ""
   var isDirty: Bool = false
   var isEvaluating: Bool = false
+  var executionId: UInt64?
 
   init(title: String = "Untitled", path: String? = nil, code: String = "") {
     self.title = title
