@@ -1,3 +1,7 @@
+.build/
 compiled/
+Derived/
+Ruckus.xcodeproj/
+Ruckus.xcworkspace/
 Ruckus/res
 xcuserdata/
