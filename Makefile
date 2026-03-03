@@ -1,6 +1,6 @@
 APP_SRC=Ruckus
 RKT_SRC=ruckus-core
-RKT_FILES=$(shell find ${RKT_SRC} -name '*.rkt')
+RKT_FILES=$(shell find ${RKT_SRC} -name '*.rkt' -not -name '.*')
 RKT_MAIN_ZO=${RKT_SRC}/compiled/main_rkt.zo
 
 RESOURCES_PATH=${APP_SRC}/res

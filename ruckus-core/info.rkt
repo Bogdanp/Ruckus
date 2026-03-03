@@ -5,4 +5,5 @@
   '("actor-lib"
     "base"
     "noise-serde-lib"
-    "sandbox-lib"))
+    "sandbox-lib"
+    "threading-lib"))
