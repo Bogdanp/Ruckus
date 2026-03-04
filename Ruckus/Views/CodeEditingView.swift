@@ -9,10 +9,16 @@ struct CodeEditingView: UIViewRepresentable {
     Coordinator(text: $text)
   }
 
-  private static let snippets: [(label: String, text: String)] = [
+  private static let symbols: [(label: String, text: String)] = [
+    ("-", "-"),
     ("(", "("), (")", ")"),
     ("[", "["), ("]", "]"),
     ("{", "{"), ("}", "}"),
+    ("0", "0"), ("1", "1"), ("2", "2"), ("3", "3"), ("4", "4"),
+    ("5", "5"), ("6", "6"), ("7", "7"), ("8", "8"), ("9", "9")
+  ]
+
+  private static let keywords: [(label: String, text: String)] = [
     ("#lang", "#lang "),
     ("define", "define "), ("let", "let "),
     ("if", "if "), ("cond", "cond "),
@@ -36,15 +42,14 @@ struct CodeEditingView: UIViewRepresentable {
     return textView
   }
 
-  private func makeInputAccessoryView(for textView: TextView) -> UIInputView {
-    let bar = UIInputView(frame: CGRect(x: 0, y: 0, width: 0, height: 40), inputViewStyle: .keyboard)
-    bar.allowsSelfSizing = true
-
+  private func makeSnippetRow(
+    snippets: [(label: String, text: String)],
+    for textView: TextView
+  ) -> UIScrollView {
     let scrollView = UIScrollView()
     scrollView.showsHorizontalScrollIndicator = false
     scrollView.clipsToBounds = false
     scrollView.translatesAutoresizingMaskIntoConstraints = false
-    bar.addSubview(scrollView)
 
     let stack = UIStackView()
     stack.axis = .horizontal
@@ -52,7 +57,7 @@ struct CodeEditingView: UIViewRepresentable {
     stack.translatesAutoresizingMaskIntoConstraints = false
     scrollView.addSubview(stack)
 
-    for snippet in Self.snippets {
+    for snippet in snippets {
       let isKeyword = snippet.label.count > 1
       var config = UIButton.Configuration.plain()
       config.title = snippet.label
@@ -79,15 +84,34 @@ struct CodeEditingView: UIViewRepresentable {
     }
 
     NSLayoutConstraint.activate([
-      scrollView.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 4),
-      scrollView.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -4),
-      scrollView.topAnchor.constraint(equalTo: bar.topAnchor, constant: 4),
-      scrollView.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -4),
       stack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
       stack.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
       stack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
       stack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
       stack.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
+    ])
+
+    return scrollView
+  }
+
+  private func makeInputAccessoryView(for textView: TextView) -> UIInputView {
+    let bar = UIInputView(frame: CGRect(x: 0, y: 0, width: 0, height: 76), inputViewStyle: .keyboard)
+    bar.allowsSelfSizing = true
+
+    let symbolsRow = makeSnippetRow(snippets: Self.symbols, for: textView)
+    let keywordsRow = makeSnippetRow(snippets: Self.keywords, for: textView)
+
+    let outerStack = UIStackView(arrangedSubviews: [symbolsRow, keywordsRow])
+    outerStack.axis = .vertical
+    outerStack.spacing = 4
+    outerStack.translatesAutoresizingMaskIntoConstraints = false
+    bar.addSubview(outerStack)
+
+    NSLayoutConstraint.activate([
+      outerStack.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 4),
+      outerStack.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -4),
+      outerStack.topAnchor.constraint(equalTo: bar.topAnchor, constant: 4),
+      outerStack.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -4)
     ])
 
     return bar
