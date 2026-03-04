@@ -6,7 +6,7 @@ struct ContentView: View {
   @State private var showFileBrowser = false
   @State private var showSaveAlert = false
   @State private var saveFilename = ""
-  
+
   var body: some View {
     NavigationStack {
       Group {
@@ -18,14 +18,8 @@ struct ContentView: View {
             TabBar(
               documents: store.documents,
               activeDocumentID: store.activeDocumentID,
-              onSelect: { store.activeDocumentID = $0.id },
-              onClose: { doc in
-                if let id = doc.executionId {
-                  AppDelegate.unregister(executionId: id)
-                  Task { try? await Backend.shared.stopExecution(id) }
-                }
-                store.close(doc)
-              },
+              onSelect: { store.selectDocument($0) },
+              onClose: { store.close($0) },
               onNew: { store.newDocument() }
             )
             if let doc = store.activeDocument {
@@ -42,16 +36,7 @@ struct ContentView: View {
               .id(doc.id)
               .frame(maxWidth: .infinity, maxHeight: .infinity)
               if !doc.output.isEmpty {
-                Divider()
-                ScrollView {
-                  Text(doc.output)
-                    .font(.system(.caption, design: .monospaced))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-                    .padding(8)
-                }
-                .defaultScrollAnchor(.bottom)
-                .frame(maxHeight: 200)
+                OutputPanelView(text: doc.output)
               }
             }
           }
@@ -59,44 +44,7 @@ struct ContentView: View {
       }
       .navigationTitle(store.activeDocument?.title ?? "Ruckus")
       .navigationBarTitleDisplayMode(.inline)
-      .toolbarTitleMenu {
-        Button {
-          store.newDocument()
-        } label: {
-          Label("New", systemImage: "doc")
-        }
-        Button {
-          showFileBrowser = true
-        } label: {
-          Label("Open...", systemImage: "folder")
-        }
-        Divider()
-        Button(action: save) {
-          Label("Save", systemImage: "doc.badge.arrow.up")
-        }
-        .disabled(store.activeDocument == nil)
-        Button(action: saveAs) {
-          Label("Save As...", systemImage: "doc.badge.plus")
-        }
-        .disabled(store.activeDocument == nil)
-        Button(action: revert) {
-          Label("Revert", systemImage: "arrow.counterclockwise")
-        }
-        .disabled(store.activeDocument?.path == nil || store.activeDocument?.isDirty != true)
-        Divider()
-        Button {
-          editorUndoManager?.undo()
-        } label: {
-          Label("Undo", systemImage: "arrow.uturn.backward")
-        }
-        .disabled(editorUndoManager?.canUndo != true)
-        Button {
-          editorUndoManager?.redo()
-        } label: {
-          Label("Redo", systemImage: "arrow.uturn.forward")
-        }
-        .disabled(editorUndoManager?.canRedo != true)
-      }
+      .toolbarTitleMenu(content: titleMenu)
       .toolbar(content: leadingToolbar)
       .toolbar(content: trailingToolbar)
       .task {
@@ -115,7 +63,13 @@ struct ContentView: View {
           guard let doc = store.activeDocument else { return }
           let name = saveFilename.hasSuffix(".rkt") ? saveFilename : saveFilename + ".rkt"
           doc.title = name
-          Task { await saveDocument(doc) }
+          Task {
+            do {
+              try await store.save(doc)
+            } catch {
+              doc.output = "Save failed: \(error.localizedDescription)"
+            }
+          }
         }
         Button("Cancel", role: .cancel) {}
       } message: {
@@ -123,7 +77,49 @@ struct ContentView: View {
       }
     }
   }
-  
+
+  @ViewBuilder
+  private func titleMenu() -> some View {
+    Button {
+      store.newDocument()
+    } label: {
+      Label("New", systemImage: "doc")
+    }
+    Button {
+      showFileBrowser = true
+    } label: {
+      Label("Open...", systemImage: "folder")
+    }
+    Divider()
+    Button(action: save) {
+      Label("Save", systemImage: "doc.badge.arrow.up")
+    }
+    .disabled(store.activeDocument == nil)
+    Button(action: saveAs) {
+      Label("Save As...", systemImage: "doc.badge.plus")
+    }
+    .disabled(store.activeDocument == nil)
+    Button {
+      Task { await store.revert() }
+    } label: {
+      Label("Revert", systemImage: "arrow.counterclockwise")
+    }
+    .disabled(store.activeDocument?.path == nil || store.activeDocument?.isDirty != true)
+    Divider()
+    Button {
+      editorUndoManager?.undo()
+    } label: {
+      Label("Undo", systemImage: "arrow.uturn.backward")
+    }
+    .disabled(editorUndoManager?.canUndo != true)
+    Button {
+      editorUndoManager?.redo()
+    } label: {
+      Label("Redo", systemImage: "arrow.uturn.forward")
+    }
+    .disabled(editorUndoManager?.canRedo != true)
+  }
+
   @ToolbarContentBuilder
   private func leadingToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .topBarLeading) {
@@ -134,19 +130,19 @@ struct ContentView: View {
       }
     }
   }
-  
+
   @ToolbarContentBuilder
   private func trailingToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .primaryAction) {
       if store.activeDocument?.isEvaluating == true {
         Button {
-          Task { await stopExecution() }
+          Task { await store.stopExecution() }
         } label: {
           Image(systemName: "stop.fill")
         }
       } else {
         Button {
-          Task { await execute() }
+          Task { await store.execute() }
         } label: {
           Image(systemName: "play.fill")
         }
@@ -154,89 +150,26 @@ struct ContentView: View {
       }
     }
   }
-  
-  private func execute() async {
-    guard let doc = store.activeDocument else { return }
-    if doc.isDirty {
-      await saveDocument(doc)
-    }
-    let path: String
-    if let savedPath = doc.path {
-      path = savedPath
-    } else {
-      do {
-        let tempPath = try await Backend.shared.makeTempPath()
-        try await Backend.shared.save(doc.code, to: tempPath)
-        doc.tempPath = tempPath
-        path = tempPath
-      } catch {
-        doc.output = "Failed to create temp file: \(error.localizedDescription)"
-        return
-      }
-    }
-    doc.output = ""
-    doc.isEvaluating = true
-    do {
-      let id = try await Backend.shared.executeScript(atPath: path)
-      doc.executionId = id
-      AppDelegate.register(doc, executionId: id)
-      AppDelegate.step(id)
-    } catch {
-      doc.output = error.localizedDescription
-      doc.isEvaluating = false
-      await cleanupTempFile(doc)
-    }
-  }
-  
-  private func stopExecution() async {
-    guard let doc = store.activeDocument, let id = doc.executionId else { return }
-    do {
-      try await Backend.shared.stopExecution(id)
-    } catch {
-      doc.output += "\nStop failed: \(error.localizedDescription)"
-    }
-  }
-  
+
   private func save() {
     guard let doc = store.activeDocument else { return }
     if doc.path == nil {
       saveAs()
     } else {
-      Task { await saveDocument(doc) }
+      Task {
+        do {
+          try await store.save(doc)
+        } catch {
+          doc.output = "Save failed: \(error.localizedDescription)"
+        }
+      }
     }
   }
-  
+
   private func saveAs() {
     guard let doc = store.activeDocument else { return }
     saveFilename = doc.title == "Untitled" ? "" : doc.title
     showSaveAlert = true
-  }
-  
-  private func revert() {
-    guard let doc = store.activeDocument, let path = doc.path else { return }
-    Task {
-      do {
-        let content = try await Backend.shared.readFile(atPath: path)
-        doc.code = content
-        doc.isDirty = false
-      } catch {
-        doc.output = "Revert failed: \(error.localizedDescription)"
-      }
-    }
-  }
-  
-  private func cleanupTempFile(_ doc: EditorDocument) async {
-    guard let tempPath = doc.tempPath else { return }
-    doc.tempPath = nil
-    try? await Backend.shared.deleteFile(atPath: tempPath)
-  }
-  
-  private func saveDocument(_ doc: EditorDocument) async {
-    do {
-      try await store.save(doc)
-    } catch {
-      doc.output = "Save failed: \(error.localizedDescription)"
-    }
   }
 }
 

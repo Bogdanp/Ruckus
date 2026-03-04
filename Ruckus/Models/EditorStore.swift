@@ -1,22 +1,22 @@
 import Foundation
 
-@Observable
+@MainActor @Observable
 class EditorStore {
   private static let openDocumentPathsKey = "openDocumentPaths"
   private static let activeDocumentPathKey = "activeDocumentPath"
 
   private(set) var isLoading = true
   var documents: [EditorDocument] = []
-  var activeDocumentID: UUID? {
-    didSet { saveSession() }
-  }
+  private(set) var activeDocumentID: UUID?
 
   var activeDocument: EditorDocument? {
     guard let id = activeDocumentID else { return nil }
     return documents.first { $0.id == id }
   }
 
-  init() {
+  func selectDocument(_ doc: EditorDocument) {
+    activeDocumentID = doc.id
+    saveSession()
   }
 
   func newDocument() {
@@ -35,6 +35,7 @@ class EditorStore {
   func open(path: String) async throws {
     if let existing = documents.first(where: { $0.path == path }) {
       activeDocumentID = existing.id
+      saveSession()
       return
     }
     let content = try await Backend.shared.readFile(atPath: path)
@@ -62,6 +63,10 @@ class EditorStore {
   }
 
   func close(_ doc: EditorDocument) {
+    if let id = doc.executionId {
+      AppDelegate.unregister(executionId: id)
+      Task { try? await Backend.shared.stopExecution(id) }
+    }
     documents.removeAll { $0.id == doc.id }
     if activeDocumentID == doc.id {
       activeDocumentID = documents.last?.id
@@ -70,6 +75,64 @@ class EditorStore {
       newDocument()
     }
     saveSession()
+  }
+
+  func execute() async {
+    guard let doc = activeDocument else { return }
+    if doc.isDirty {
+      do {
+        try await save(doc)
+      } catch {
+        doc.output = "Save failed: \(error.localizedDescription)"
+        return
+      }
+    }
+    let path: String
+    if let savedPath = doc.path {
+      path = savedPath
+    } else {
+      do {
+        let tempPath = try await Backend.shared.makeTempPath()
+        try await Backend.shared.save(doc.code, to: tempPath)
+        doc.tempPath = tempPath
+        path = tempPath
+      } catch {
+        doc.output = "Failed to create temp file: \(error.localizedDescription)"
+        return
+      }
+    }
+    doc.output = ""
+    doc.isEvaluating = true
+    do {
+      let id = try await Backend.shared.executeScript(atPath: path)
+      doc.executionId = id
+      AppDelegate.register(doc, executionId: id)
+      AppDelegate.step(id)
+    } catch {
+      doc.output = error.localizedDescription
+      doc.isEvaluating = false
+      cleanupTempFile(doc)
+    }
+  }
+
+  func stopExecution() async {
+    guard let doc = activeDocument, let id = doc.executionId else { return }
+    do {
+      try await Backend.shared.stopExecution(id)
+    } catch {
+      doc.output += "\nStop failed: \(error.localizedDescription)"
+    }
+  }
+
+  func revert() async {
+    guard let doc = activeDocument, let path = doc.path else { return }
+    do {
+      let content = try await Backend.shared.readFile(atPath: path)
+      doc.code = content
+      doc.isDirty = false
+    } catch {
+      doc.output = "Revert failed: \(error.localizedDescription)"
+    }
   }
 
   func restoreSession() async {
@@ -110,6 +173,14 @@ class EditorStore {
       }
     } else {
       newDocument()
+    }
+  }
+
+  func cleanupTempFile(_ doc: EditorDocument) {
+    guard let tempPath = doc.tempPath else { return }
+    doc.tempPath = nil
+    Task {
+      try? await Backend.shared.deleteFile(atPath: tempPath)
     }
   }
 
