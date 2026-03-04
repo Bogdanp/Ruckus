@@ -138,13 +138,15 @@ struct ContentView: View {
         Button {
           Task { await store.stopExecution() }
         } label: {
-          Image(systemName: "stop.fill")
+          Label("Stop", systemImage: "stop.fill")
+            .labelStyle(.iconOnly)
         }
       } else {
         Button {
           Task { await store.execute() }
         } label: {
-          Image(systemName: "play.fill")
+          Label("Run", systemImage: "play.fill")
+            .labelStyle(.iconOnly)
         }
         .disabled(store.activeDocument == nil)
       }
