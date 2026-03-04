@@ -21,6 +21,7 @@ let project = Project(
       deploymentTargets: .iOS("26.0"),
       sources: ["Ruckus/**"],
       resources: [
+        .folderReference(path: "Ruckus/racket"),
         .folderReference(path: "Ruckus/res"),
         .glob(pattern: "vendor/tree-sitter-racket/queries/highlights.scm")
       ],
