@@ -8,7 +8,7 @@ struct OutputPanelView: View {
     Divider()
     OutputTextView(text: text)
       .frame(maxHeight: 200)
-      .background(.quaternary)
+      .background(.background)
   }
 }
 
