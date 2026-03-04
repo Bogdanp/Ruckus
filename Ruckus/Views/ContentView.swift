@@ -6,47 +6,54 @@ struct ContentView: View {
   @State private var showFileBrowser = false
   @State private var showSaveAlert = false
   @State private var saveFilename = ""
-
+  
   var body: some View {
     NavigationStack {
-      VStack(spacing: 0) {
-        TabBar(
-          documents: store.documents,
-          activeDocumentID: store.activeDocumentID,
-          onSelect: { store.activeDocumentID = $0.id },
-          onClose: { doc in
-            if let id = doc.executionId {
-              AppDelegate.unregister(executionId: id)
-              Task { try? await Backend.shared.stopExecution(id) }
-            }
-            store.close(doc)
-          },
-          onNew: { store.newDocument() }
-        )
-        if let doc = store.activeDocument {
-          CodeEditingView(
-            text: Binding(
-              get: { doc.code },
-              set: {
-                doc.code = $0
-                doc.isDirty = true
+      Group {
+        if store.isLoading {
+          ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+          VStack(spacing: 0) {
+            TabBar(
+              documents: store.documents,
+              activeDocumentID: store.activeDocumentID,
+              onSelect: { store.activeDocumentID = $0.id },
+              onClose: { doc in
+                if let id = doc.executionId {
+                  AppDelegate.unregister(executionId: id)
+                  Task { try? await Backend.shared.stopExecution(id) }
+                }
+                store.close(doc)
+              },
+              onNew: { store.newDocument() }
+            )
+            if let doc = store.activeDocument {
+              CodeEditingView(
+                text: Binding(
+                  get: { doc.code },
+                  set: {
+                    doc.code = $0
+                    doc.isDirty = true
+                  }
+                ),
+                textViewUndoManager: $editorUndoManager
+              )
+              .id(doc.id)
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+              if !doc.output.isEmpty {
+                Divider()
+                ScrollView {
+                  Text(doc.output)
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                    .padding(8)
+                }
+                .defaultScrollAnchor(.bottom)
+                .frame(maxHeight: 200)
               }
-            ),
-            textViewUndoManager: $editorUndoManager
-          )
-          .id(doc.id)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          if !doc.output.isEmpty {
-            Divider()
-            ScrollView {
-              Text(doc.output)
-                .font(.system(.caption, design: .monospaced))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .textSelection(.enabled)
-                .padding(8)
             }
-            .defaultScrollAnchor(.bottom)
-            .frame(maxHeight: 200)
           }
         }
       }
@@ -92,6 +99,9 @@ struct ContentView: View {
       }
       .toolbar(content: leadingToolbar)
       .toolbar(content: trailingToolbar)
+      .task {
+        await store.restoreSession()
+      }
       .sheet(isPresented: $showFileBrowser) {
         FileBrowserSheet { path in
           Task {
@@ -113,7 +123,7 @@ struct ContentView: View {
       }
     }
   }
-
+  
   @ToolbarContentBuilder
   private func leadingToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .topBarLeading) {
@@ -124,7 +134,7 @@ struct ContentView: View {
       }
     }
   }
-
+  
   @ToolbarContentBuilder
   private func trailingToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .primaryAction) {
@@ -144,7 +154,7 @@ struct ContentView: View {
       }
     }
   }
-
+  
   private func execute() async {
     guard let doc = store.activeDocument else { return }
     if doc.isDirty {
@@ -177,7 +187,7 @@ struct ContentView: View {
       await cleanupTempFile(doc)
     }
   }
-
+  
   private func stopExecution() async {
     guard let doc = store.activeDocument, let id = doc.executionId else { return }
     do {
@@ -186,7 +196,7 @@ struct ContentView: View {
       doc.output += "\nStop failed: \(error.localizedDescription)"
     }
   }
-
+  
   private func save() {
     guard let doc = store.activeDocument else { return }
     if doc.path == nil {
@@ -195,13 +205,13 @@ struct ContentView: View {
       Task { await saveDocument(doc) }
     }
   }
-
+  
   private func saveAs() {
     guard let doc = store.activeDocument else { return }
     saveFilename = doc.title == "Untitled" ? "" : doc.title
     showSaveAlert = true
   }
-
+  
   private func revert() {
     guard let doc = store.activeDocument, let path = doc.path else { return }
     Task {
@@ -214,13 +224,13 @@ struct ContentView: View {
       }
     }
   }
-
+  
   private func cleanupTempFile(_ doc: EditorDocument) async {
     guard let tempPath = doc.tempPath else { return }
     doc.tempPath = nil
     try? await Backend.shared.deleteFile(atPath: tempPath)
   }
-
+  
   private func saveDocument(_ doc: EditorDocument) async {
     do {
       try await store.save(doc)
