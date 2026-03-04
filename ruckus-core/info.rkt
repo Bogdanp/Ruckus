@@ -4,7 +4,7 @@
 (define deps
   '("actor-lib"
     "base"
-    "noise-serde-lib"
+    ["noise-serde-lib" #:version "0.11"]
     "sandbox-lib"
     "struct-define"
     "threading-lib"))

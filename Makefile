@@ -24,6 +24,7 @@ ${CORE_ZO}: ${RKT_MAIN_ZO}
 	rm -fr ${RUNTIME_PATH}
 	./bin/pbraco ctool \
 	  ++lang north \
+	  ++lang racket/base \
 	  ++lib racket/runtime-config \
 	  --runtime ${RUNTIME_PATH} \
 	  --runtime-access ${RUNTIME_NAME} \

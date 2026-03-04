@@ -1,7 +1,6 @@
 #lang racket/base
 
 (require noise/backend
-         noise/serde
          openssl
          racket/runtime-path
 
@@ -17,9 +16,6 @@
 
 (ssl-default-verify-sources
  (list cacert.cer))
-
-(define-rpc (ping : String)
-  "pong")
 
 (define (main in-fd out-fd)
   (module-cache-clear!)

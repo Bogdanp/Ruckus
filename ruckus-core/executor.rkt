@@ -3,7 +3,6 @@
 (require actor
          noise/backend
          noise/serde
-         racket/sandbox
          struct-define)
 
 (provide
@@ -19,7 +18,7 @@
   [more {output : ExecutionOutput}])
 
 (struct state (sequence executions))
-(struct execution (id path evaluator evaluation stdout stderr pending-stdout pending-stderr))
+(struct execution (id path custodian evaluation stdout stderr pending-stdout pending-stderr))
 
 (define (make-state)
   (state
@@ -27,34 +26,30 @@
    #;executions (hasheqv)))
 
 (define (make-execution id path)
-  (define-values (stdout-in stdout-out) (make-pipe))
-  (define-values (stderr-in stderr-out) (make-pipe))
-  (define evaluator
-    (call-with-trusted-sandbox-configuration
-     (lambda ()
-       (parameterize ([sandbox-output stdout-out]
-                      [sandbox-error-output stderr-out]
-                      [sandbox-path-permissions `((read #rx#".*"))])
-         (make-evaluator '(begin))))))
-  (define evaluation
-    (thread
-     (lambda ()
-       (evaluator
-        `(with-handlers ([exn?
-                          (lambda (e)
-                            ((error-display-handler)
-                             (format "~a" (exn-message e))
-                             e))])
-           (dynamic-require '(file ,path) #f))))))
-  (execution
-   #;id id
-   #;path path
-   #;evaluator evaluator
-   #;evaluation evaluation
-   #;stdout stdout-in
-   #;stderr stderr-in
-   #;pending-stdout (open-output-bytes)
-   #;pending-stderr (open-output-bytes)))
+  (define custodian (make-custodian))
+  (parameterize ([current-custodian custodian])
+    (define-values (stdout-in stdout-out) (make-pipe))
+    (define-values (stderr-in stderr-out) (make-pipe))
+    (define evaluation
+      (parameterize ([current-output-port stdout-out]
+                     [current-error-port stderr-out])
+        (thread
+         (lambda ()
+           (with-handlers ([exn?
+                            (lambda (e)
+                              ((error-display-handler)
+                               (format "~a" (exn-message e))
+                               e))])
+             (dynamic-require `(file ,path) #f))))))
+    (execution
+     #;id id
+     #;path path
+     #;custodian custodian
+     #;evaluation evaluation
+     #;stdout stdout-in
+     #;stderr stderr-in
+     #;pending-stdout (open-output-bytes)
+     #;pending-stderr (open-output-bytes))))
 
 (define-actor (executor)
   #:state (make-state)
@@ -71,7 +66,6 @@
                    (define updated-execution
                      (struct-copy
                       execution ex
-                      [evaluator #f]
                       [evaluation #f]))
                    (when callout-installed?
                      (on-executor-step id))
@@ -94,8 +88,7 @@
     (struct-define state st)
     (let ([ex (hash-ref executions id)])
       (struct-define execution ex)
-      (when evaluator
-        (kill-evaluator evaluator))
+      (custodian-shutdown-all custodian)
       (values st (void))))
 
   (define (step st id)
