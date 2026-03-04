@@ -35,7 +35,7 @@ struct ContentView: View {
               )
               .id(doc.id)
               .frame(maxWidth: .infinity, maxHeight: .infinity)
-              if !doc.output.isEmpty {
+              if doc.output.length > 0 {
                 OutputPanelView(text: doc.output)
               }
             }
@@ -67,7 +67,7 @@ struct ContentView: View {
             do {
               try await store.save(doc)
             } catch {
-              doc.output = "Save failed: \(error.localizedDescription)"
+              doc.appendOutput("Save failed: \(error.localizedDescription)", stream: .stderr)
             }
           }
         }
@@ -160,7 +160,7 @@ struct ContentView: View {
         do {
           try await store.save(doc)
         } catch {
-          doc.output = "Save failed: \(error.localizedDescription)"
+          doc.appendOutput("Save failed: \(error.localizedDescription)", stream: .stderr)
         }
       }
     }

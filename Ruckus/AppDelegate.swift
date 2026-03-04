@@ -50,10 +50,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
           isDone = false
         }
         if let text = String(data: output.stdout, encoding: .utf8), !text.isEmpty {
-          doc.output += text
+          doc.appendOutput(text, stream: .stdout)
         }
         if let text = String(data: output.stderr, encoding: .utf8), !text.isEmpty {
-          doc.output += text
+          doc.appendOutput(text, stream: .stderr)
         }
         if isDone {
           doc.isEvaluating = false
@@ -62,7 +62,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
           cleanupTempFile(doc)
         }
       } catch {
-        doc.output += error.localizedDescription + "\n"
+        doc.appendOutput(error.localizedDescription + "\n", stream: .stderr)
         doc.isEvaluating = false
         doc.executionId = nil
         executions.removeValue(forKey: executionId)

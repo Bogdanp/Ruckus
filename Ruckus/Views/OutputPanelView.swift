@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 struct OutputPanelView: View {
-  let text: String
+  let text: NSAttributedString
 
   var body: some View {
     Divider()
@@ -13,13 +13,12 @@ struct OutputPanelView: View {
 }
 
 private struct OutputTextView: UIViewRepresentable {
-  let text: String
+  let text: NSAttributedString
 
   func makeUIView(context: Context) -> UITextView {
     let view = UITextView()
     view.isEditable = false
     view.isSelectable = true
-    view.font = .monospacedSystemFont(ofSize: UIFont.smallSystemFontSize, weight: .regular)
     view.textContainerInset = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
     view.textContainer.lineBreakMode = .byClipping
     view.textContainer.widthTracksTextView = false
@@ -29,6 +28,6 @@ private struct OutputTextView: UIViewRepresentable {
   }
 
   func updateUIView(_ view: UITextView, context: Context) {
-    view.text = text
+    view.attributedText = text
   }
 }

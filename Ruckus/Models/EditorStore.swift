@@ -83,7 +83,7 @@ class EditorStore {
       do {
         try await save(doc)
       } catch {
-        doc.output = "Save failed: \(error.localizedDescription)"
+        doc.appendOutput("Save failed: \(error.localizedDescription)", stream: .stderr)
         return
       }
     }
@@ -97,11 +97,11 @@ class EditorStore {
         doc.tempPath = tempPath
         path = tempPath
       } catch {
-        doc.output = "Failed to create temp file: \(error.localizedDescription)"
+        doc.appendOutput("Failed to create temp file: \(error.localizedDescription)", stream: .stderr)
         return
       }
     }
-    doc.output = ""
+    doc.output = NSAttributedString()
     doc.isEvaluating = true
     do {
       let id = try await Backend.shared.executeScript(atPath: path)
@@ -109,7 +109,7 @@ class EditorStore {
       AppDelegate.register(doc, executionId: id)
       AppDelegate.step(id)
     } catch {
-      doc.output = error.localizedDescription
+      doc.appendOutput(error.localizedDescription, stream: .stderr)
       doc.isEvaluating = false
       cleanupTempFile(doc)
     }
@@ -120,7 +120,7 @@ class EditorStore {
     do {
       try await Backend.shared.stopExecution(id)
     } catch {
-      doc.output += "\nStop failed: \(error.localizedDescription)"
+      doc.appendOutput("\nStop failed: \(error.localizedDescription)", stream: .stderr)
     }
   }
 
@@ -131,7 +131,7 @@ class EditorStore {
       doc.code = content
       doc.isDirty = false
     } catch {
-      doc.output = "Revert failed: \(error.localizedDescription)"
+      doc.appendOutput("Revert failed: \(error.localizedDescription)", stream: .stderr)
     }
   }
 
