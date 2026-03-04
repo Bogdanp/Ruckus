@@ -3,7 +3,8 @@
 (require actor
          noise/backend
          noise/serde
-         struct-define)
+         struct-define
+         syntax/modread)
 
 (provide
  (record-out ExecutionOutput)
@@ -35,12 +36,7 @@
                      [current-error-port stderr-out])
         (thread
          (lambda ()
-           (with-handlers ([exn?
-                            (lambda (e)
-                              ((error-display-handler)
-                               (format "~a" (exn-message e))
-                               e))])
-             (dynamic-require `(file ,path) #f))))))
+           (call-with-input-file path evaluate)))))
     (execution
      #;id id
      #;path path
@@ -50,6 +46,17 @@
      #;stderr stderr-in
      #;pending-stdout (open-output-bytes)
      #;pending-stderr (open-output-bytes))))
+
+(define (evaluate in)
+  (parameterize ([current-module-declare-name (make-resolved-module-path 'document)])
+    (eval
+     (check-module-form
+      (with-module-reading-parameterization
+        (lambda ()
+          (read-syntax #f in)))
+      #;expected-module-sym 'ignored
+      #;source-v #f))
+    (dynamic-require ''document 0)))
 
 (define-actor (executor)
   #:state (make-state)
@@ -84,12 +91,15 @@
                      (on-executor-step id))
                    st))))))
 
-  (define (kill st id)
+  (define (execute st path)
     (struct-define state st)
-    (let ([ex (hash-ref executions id)])
-      (struct-define execution ex)
-      (custodian-shutdown-all custodian)
-      (values st (void))))
+    (define ex (make-execution sequence path))
+    (values
+     (struct-copy
+      state st
+      [sequence (add1 sequence)]
+      [executions (hash-set executions sequence ex)])
+     sequence))
 
   (define (step st id)
     (struct-define state st)
@@ -101,15 +111,15 @@
       (define the-step ((if evaluation ExecutionStep.more ExecutionStep.done) the-output))
       (values st the-step)))
 
-  (define (execute st path)
+  (define (kill st id)
     (struct-define state st)
-    (define ex (make-execution sequence path))
-    (values
-     (struct-copy
-      state st
-      [sequence (add1 sequence)]
-      [executions (hash-set executions sequence ex)])
-     sequence)))
+    (let ([ex (hash-ref executions id)])
+      (struct-define execution ex)
+      (when evaluation
+        (break-thread evaluation)
+        (thread-wait evaluation))
+      (custodian-shutdown-all custodian)
+      (values st (void)))))
 
 (define (copy-bytes-avail in out)
   (define buf (make-bytes 4096))
