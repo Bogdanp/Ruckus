@@ -6,4 +6,5 @@
     "base"
     "noise-serde-lib"
     "sandbox-lib"
+    "struct-define"
     "threading-lib"))
