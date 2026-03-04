@@ -26,6 +26,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     return true
   }
 
+  private static func cleanupTempFile(_ doc: EditorDocument) {
+    guard let tempPath = doc.tempPath else { return }
+    doc.tempPath = nil
+    Task {
+      try? await Backend.shared.deleteFile(atPath: tempPath)
+    }
+  }
+
   static func step(_ executionId: UInt64) {
     guard let doc = executions[executionId] else { return }
     Task {
@@ -51,12 +59,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
           doc.isEvaluating = false
           doc.executionId = nil
           executions.removeValue(forKey: executionId)
+          cleanupTempFile(doc)
         }
       } catch {
         doc.output += error.localizedDescription + "\n"
         doc.isEvaluating = false
         doc.executionId = nil
         executions.removeValue(forKey: executionId)
+        cleanupTempFile(doc)
       }
     }
   }

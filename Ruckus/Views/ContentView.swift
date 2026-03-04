@@ -150,7 +150,20 @@ struct ContentView: View {
     if doc.isDirty {
       await saveDocument(doc)
     }
-    guard let path = doc.path else { return }
+    let path: String
+    if let savedPath = doc.path {
+      path = savedPath
+    } else {
+      do {
+        let tempPath = try await Backend.shared.makeTempPath()
+        try await Backend.shared.save(doc.code, to: tempPath)
+        doc.tempPath = tempPath
+        path = tempPath
+      } catch {
+        doc.output = "Failed to create temp file: \(error.localizedDescription)"
+        return
+      }
+    }
     doc.output = ""
     doc.isEvaluating = true
     do {
@@ -161,6 +174,7 @@ struct ContentView: View {
     } catch {
       doc.output = error.localizedDescription
       doc.isEvaluating = false
+      await cleanupTempFile(doc)
     }
   }
 
@@ -199,6 +213,12 @@ struct ContentView: View {
         doc.output = "Revert failed: \(error.localizedDescription)"
       }
     }
+  }
+
+  private func cleanupTempFile(_ doc: EditorDocument) async {
+    guard let tempPath = doc.tempPath else { return }
+    doc.tempPath = nil
+    try? await Backend.shared.deleteFile(atPath: tempPath)
   }
 
   private func saveDocument(_ doc: EditorDocument) async {

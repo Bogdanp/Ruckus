@@ -2,8 +2,8 @@
 
 (require noise/backend
          noise/serde
+         (prefix-in base: racket/base)
          racket/file
-         racket/port
          racket/promise
          "appdata.rkt")
 
@@ -53,4 +53,9 @@
   (file->string path))
 
 (define-rpc (delete-file [at-path path : String])
-  (delete-file path))
+  (base:delete-file path))
+
+(define-rpc (make-temp-path : String)
+  (define path (make-temporary-file "ruckus-~a.rkt"))
+  (base:delete-file path)
+  (path->string path))

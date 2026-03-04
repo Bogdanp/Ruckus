@@ -10,6 +10,7 @@ class EditorDocument: Identifiable {
   var isDirty: Bool = false
   var isEvaluating: Bool = false
   var executionId: UInt64?
+  var tempPath: String?
 
   init(title: String = "Untitled", path: String? = nil, code: String = "") {
     self.title = title
