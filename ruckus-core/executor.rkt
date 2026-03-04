@@ -48,7 +48,8 @@
      #;pending-stderr (open-output-bytes))))
 
 (define (evaluate in)
-  (parameterize ([current-module-declare-name (make-resolved-module-path 'document)])
+  (define id (gensym 'document))
+  (parameterize ([current-module-declare-name (make-resolved-module-path id)])
     (eval
      (check-module-form
       (with-module-reading-parameterization
@@ -56,7 +57,7 @@
           (read-syntax #f in)))
       #;expected-module-sym 'ignored
       #;source-v #f))
-    (dynamic-require ''document 0)))
+    (dynamic-require `',id 0)))
 
 (define-actor (executor)
   #:state (make-state)
