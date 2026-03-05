@@ -32,6 +32,8 @@ struct CodeEditingView: UIViewRepresentable {
     textView.showLineNumbers = true
     textView.autocapitalizationType = .none
     textView.autocorrectionType = .no
+    textView.smartQuotesType = .no
+    textView.smartDashesType = .no
     textView.indentStrategy = .space(length: 2)
     textView.inputAccessoryView = makeInputAccessoryView(for: textView)
     let state = TextViewState(text: text, theme: DefaultTheme(), language: .racket)
