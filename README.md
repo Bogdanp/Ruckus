@@ -1,6 +1,6 @@
 # Ruckus
 
-Racket for iOS.
+Racket for iOS. The frontend is mostly vibe coded.
 
 ## Build
 
