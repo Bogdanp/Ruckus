@@ -53,6 +53,16 @@ let project = Project(
       )
     ),
     .target(
+      name: "RuckusTests",
+      destinations: .iOS,
+      product: .unitTests,
+      bundleId: "io.defn.RuckusTests",
+      sources: ["RuckusTests/**"],
+      dependencies: [
+        .target(name: "Ruckus")
+      ]
+    ),
+    .target(
       name: "TreeSitterRacket",
       destinations: .iOS,
       product: .staticLibrary,

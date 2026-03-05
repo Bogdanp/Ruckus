@@ -126,6 +126,7 @@ struct CodeEditingView: UIViewRepresentable {
   @MainActor
   class Coordinator: TextViewDelegate {
     var text: Binding<String>
+    private let indenter = RacketIndenter()
 
     init(text: Binding<String>) {
       self.text = text
@@ -144,45 +145,10 @@ struct CodeEditingView: UIViewRepresentable {
         return true
       }
       let source = textView.text
-      let indent = Self.indentForNewline(in: source, at: range.location)
+      let indent = indenter.indentForNewline(in: source, at: range.location)
       guard !indent.isEmpty else { return true }
       textView.insertText("\n" + indent)
       return false
-    }
-
-    static func indentForNewline(in text: String, at offset: Int) -> String {
-      String(repeating: "  ", count: parenDepth(in: text, upTo: offset))
-    }
-
-    // swiftlint:disable:next cyclomatic_complexity
-    private static func parenDepth(in text: String, upTo offset: Int) -> Int {
-      var depth = 0
-      var inString = false
-      var escaped = false
-      var inLineComment = false
-      for char in text.prefix(offset) {
-        if escaped { escaped = false; continue }
-        if inLineComment {
-          if char.isNewline { inLineComment = false }
-          continue
-        }
-        if inString {
-          switch char {
-          case "\\": escaped = true
-          case "\"": inString = false
-          default: break
-          }
-          continue
-        }
-        switch char {
-        case "\"": inString = true
-        case ";": inLineComment = true
-        case "(", "[", "{": depth += 1
-        case ")", "]", "}": depth = max(depth - 1, 0)
-        default: break
-        }
-      }
-      return depth
     }
   }
 }
