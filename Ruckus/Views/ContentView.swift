@@ -6,6 +6,7 @@ struct ContentView: View {
   @State private var showFileBrowser = false
   @State private var showSaveAlert = false
   @State private var saveFilename = ""
+  @State private var shareFileURL: URL?
 
   var body: some View {
     NavigationStack {
@@ -75,6 +76,9 @@ struct ContentView: View {
       } message: {
         Text("Enter a name for this file.")
       }
+      .sheet(item: $shareFileURL) { url in
+        ActivitySheet(items: [url])
+      }
     }
   }
 
@@ -97,6 +101,10 @@ struct ContentView: View {
     .disabled(store.activeDocument == nil)
     Button(action: saveAs) {
       Label("Save As...", systemImage: "doc.badge.plus")
+    }
+    .disabled(store.activeDocument == nil)
+    Button(action: share) {
+      Label("Share...", systemImage: "square.and.arrow.up")
     }
     .disabled(store.activeDocument == nil)
     Button {
@@ -172,6 +180,16 @@ struct ContentView: View {
     guard let doc = store.activeDocument else { return }
     saveFilename = doc.title == "Untitled" ? "" : doc.title
     showSaveAlert = true
+  }
+
+  private func share() {
+    guard let doc = store.activeDocument else { return }
+    let filename = doc.title.hasSuffix(".rkt") ? doc.title : doc.title + ".rkt"
+    let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+    let fileURL = tempDir.appendingPathComponent(filename)
+    try? doc.code.write(to: fileURL, atomically: true, encoding: .utf8)
+    shareFileURL = fileURL
   }
 }
 
