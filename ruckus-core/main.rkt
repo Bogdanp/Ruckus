@@ -9,7 +9,6 @@
 (provide
  main)
 
-
 (define (main in-fd out-fd)
   (module-cache-clear!)
   (collect-garbage)

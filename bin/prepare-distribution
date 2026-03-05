@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+HERE="$(basename "$(dirname "$0")")"
+RACKET_DIR="${PBRACKET_ROOT}/racket"
+RUCKUS_DIR="${HERE}/../Ruckus"
+
+rsync -ravz --exclude '.gitignore' "$RACKET_DIR/collects" "$RUCKUS_DIR/racket/"
+rsync -ravz "$HERE/../collects" "$RUCKUS_DIR/racket/"
+"$HERE/pbraco" \
+    pkg install \
+    --no-docs \
+    --scope-dir "$RUCKUS_DIR/racket/share" \
+    --auto --batch \
+    --skip-installed \
+    crypto-lib \
+    db-lib \
+    deta-lib \
+    http-easy-lib \
+    math-lib \
+    memoize-lib \
+    rackcheck-lib \
+    rackunit-lib \
+    threading-lib
