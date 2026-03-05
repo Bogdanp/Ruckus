@@ -14,9 +14,9 @@ Execute a task from the `docs/tasks/` directory.
 
 ## Workflow
 
-1. **Identify the task.** The user provides a task number or filename (e.g.
-   `/task 01` or `/task 04-unsanitized-filenames`). Find the matching file
-   under `docs/tasks/`.
+1. **Identify the task.** The user provides a task number or filename
+   (e.g. `/perform-task 01` or `/perform-task 04-unsanitized-filenames`).
+   Find the matching file under `docs/tasks/`.
 
 2. **Read the task description.** Read the full markdown file.
 

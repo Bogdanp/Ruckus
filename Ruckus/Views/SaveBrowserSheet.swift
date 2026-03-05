@@ -50,6 +50,10 @@ struct SaveBrowserSheet: View {
           .textFieldStyle(.roundedBorder)
           .autocorrectionDisabled()
           .textInputAutocapitalization(.never)
+          .overlay(
+            RoundedRectangle(cornerRadius: 6)
+              .stroke(filenameError != nil ? Color.red : Color.clear, lineWidth: 1)
+          )
         Button("Save") {
           let name = filename.hasSuffix(".rkt") ? filename : filename + ".rkt"
           onSave(currentDirectory, name)
@@ -59,13 +63,12 @@ struct SaveBrowserSheet: View {
         .disabled(filename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || filenameError != nil)
       }
       .padding()
-      if let error = filenameError {
-        Text(error)
-          .font(.caption)
-          .foregroundStyle(.red)
-          .padding(.horizontal)
-          .padding(.bottom, 4)
-      }
+      Text(filenameError ?? " ")
+        .font(.caption)
+        .foregroundStyle(.red)
+        .padding(.horizontal)
+        .padding(.bottom, 4)
+        .opacity(filenameError != nil ? 1 : 0)
       Divider()
     }
   }
