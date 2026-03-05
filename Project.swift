@@ -19,6 +19,32 @@ let project = Project(
       product: .app,
       bundleId: "io.defn.Ruckus",
       deploymentTargets: .iOS("26.0"),
+      infoPlist: .extendingDefault(with: [
+        "CFBundleDocumentTypes": .array([
+          .dictionary([
+            "CFBundleTypeName": .string("Racket Source"),
+            "CFBundleTypeRole": .string("Editor"),
+            "LSHandlerRank": .string("Default"),
+            "LSItemContentTypes": .array([
+              .string("org.racket-lang.racket-source")
+            ])
+          ])
+        ]),
+        "UTImportedTypeDeclarations": .array([
+          .dictionary([
+            "UTTypeIdentifier": .string("org.racket-lang.racket-source"),
+            "UTTypeDescription": .string("Racket Source File"),
+            "UTTypeConformsTo": .array([
+              .string("public.source-code")
+            ]),
+            "UTTypeTagSpecification": .dictionary([
+              "public.filename-extension": .array([
+                .string("rkt")
+              ])
+            ])
+          ])
+        ])
+      ]),
       sources: ["Ruckus/**"],
       resources: [
         .folderReference(path: "Ruckus/racket"),

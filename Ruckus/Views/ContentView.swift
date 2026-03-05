@@ -79,6 +79,11 @@ struct ContentView: View {
       .sheet(item: $shareFileURL) { url in
         ActivitySheet(items: [url])
       }
+      .onOpenURL { url in
+        Task {
+          await store.importFile(from: url)
+        }
+      }
     }
   }
 

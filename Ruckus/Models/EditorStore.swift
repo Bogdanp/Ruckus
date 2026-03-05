@@ -124,6 +124,21 @@ class EditorStore {
     }
   }
 
+  func importFile(from url: URL) async {
+    let filename = url.lastPathComponent
+    guard let content = try? String(contentsOf: url, encoding: .utf8) else { return }
+    let root = try? await Backend.shared.getRootPath()
+    let doc = EditorDocument(title: filename, code: content)
+    if let root {
+      let destPath = (root as NSString).appendingPathComponent(filename)
+      try? await Backend.shared.save(content, to: destPath)
+      doc.path = destPath
+    }
+    documents.append(doc)
+    activeDocumentID = doc.id
+    saveSession()
+  }
+
   func revert() async {
     guard let doc = activeDocument, let path = doc.path else { return }
     do {
