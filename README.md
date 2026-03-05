@@ -25,4 +25,6 @@ Racket for iOS. The frontend is mostly vibe coded.
 
 ## License
 
-    Copyright 2026 CLEARTYPE SRL.  All rights reserved.
+    Copyright 2026 CLEARTYPE SRL.
+
+Licensed under the 3-Clause BSD License. See [LICENSE](LICENSE) for details.
