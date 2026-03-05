@@ -35,7 +35,9 @@
 (define-rpc (list-files [at-path root : String] : (Listof FilesystemEntry))
   (for/list ([path (in-directory root (λ (_) #f))])
     (if (directory-exists? path)
-        (FilesystemEntry.folder (Folder path))
+        (FilesystemEntry.folder
+         (Folder
+          #;path (path->string path)))
         (FilesystemEntry.file
          (File
           #;path (path->string path)
@@ -51,6 +53,9 @@
 
 (define-rpc (read-file [at-path path : String] : String)
   (file->string path))
+
+(define-rpc (create-directory [at-path path : String])
+  (make-directory* path))
 
 (define-rpc (delete-file [at-path path : String])
   (base:delete-file path))
