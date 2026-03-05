@@ -100,5 +100,13 @@ let project = Project(
         "MODULEMAP_FILE": "$(SRCROOT)/vendor/tree-sitter-racket.modulemap"
       ])
     )
+  ],
+  schemes: [
+    .scheme(
+      name: "Ruckus",
+      buildAction: .buildAction(targets: ["Ruckus"]),
+      testAction: .targets(["RuckusTests"]),
+      runAction: .runAction(executable: "Ruckus")
+    )
   ]
 )

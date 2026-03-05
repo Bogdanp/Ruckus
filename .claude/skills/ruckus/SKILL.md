@@ -1,13 +1,13 @@
 ---
-name: ruckus-build
+name: ruckus
 description: |
-  Use when building the Ruckus iOS app, running swiftlint, regenerating
-  the Tuist project, or adding new Swift files. Covers xcodebuild, make,
-  tuist generate, and swiftlint workflows.
+  Use when building, testing, or linting the Ruckus iOS app, regenerating
+  the Tuist project, running tests, or adding new Swift files. Covers
+  xcodebuild, tuist, make, swiftlint, and test workflows.
 user_invocable: false
 ---
 
-# Ruckus Build, Lint & Tuist
+# Ruckus Build, Test, Lint & Tuist
 
 ## Build
 
@@ -18,6 +18,22 @@ Build from the command line:
 A pre-build script in `Project.swift` runs `make` automatically before
 compiling. This regenerates `Backend.swift` and `res/core.zo` from
 Racket source. No need to run `make` manually before building.
+
+## Tests
+
+Run tests with xcodebuild using the **workspace** (not the project):
+
+    xcodebuild test -workspace Ruckus.xcworkspace -scheme Ruckus \
+      -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+
+To run a specific test class:
+
+    xcodebuild test -workspace Ruckus.xcworkspace -scheme Ruckus \
+      -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+      -only-testing RuckusTests/ClassName
+
+The workspace is required because it includes external dependencies
+(Noise, Runestone, TreeSitter). The project alone can't resolve them.
 
 ## Tuist
 

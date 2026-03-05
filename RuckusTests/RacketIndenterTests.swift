@@ -180,6 +180,24 @@ struct RacketIndenterTests {
     #expect(indent("(foo bar ; baz") == "     ")
   }
 
+  // MARK: - Block comments (parens inside block comments ignored)
+
+  @Test func blockComment() {
+    #expect(indent("#| ( |#\n") == "")
+  }
+
+  @Test func blockCommentNested() {
+    #expect(indent("#| #| |# |#\n") == "")
+  }
+
+  @Test func blockCommentWithCode() {
+    #expect(indent("#| (foo |#\n(define x\n") == "  ")
+  }
+
+  @Test func blockCommentMultiline() {
+    #expect(indent("#|\nfoo\n(bar\n|#\n(define x\n") == "  ")
+  }
+
   // MARK: - Top level (no unmatched paren)
 
   @Test func topLevel() {

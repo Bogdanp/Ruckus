@@ -41,7 +41,7 @@ struct RacketIndenter {
     return String(repeating: " ", count: firstCol)
   }
 
-  // swiftlint:disable:next cyclomatic_complexity
+  // swiftlint:disable:next cyclomatic_complexity function_body_length
   private func lastUnmatchedOpenParen(
     in chars: [Character]
   ) -> (column: Int, index: Int)? {
@@ -49,13 +49,31 @@ struct RacketIndenter {
     var inString = false
     var escaped = false
     var inLineComment = false
+    var blockCommentDepth = 0
+    var prevChar: Character = "\0"
     var col = 0
     for (idx, char) in chars.enumerated() {
       let charCol = col
       if char.isNewline { col = 0 } else { col += 1 }
-      if escaped { escaped = false; continue }
+      if escaped { escaped = false; prevChar = char; continue }
+      if blockCommentDepth > 0 {
+        if char.isNewline { prevChar = char; continue }
+        if prevChar == "|" && char == "#" {
+          blockCommentDepth -= 1
+          prevChar = "\0"
+          continue
+        }
+        if prevChar == "#" && char == "|" {
+          blockCommentDepth += 1
+          prevChar = "\0"
+          continue
+        }
+        prevChar = char
+        continue
+      }
       if inLineComment {
         if char.isNewline { inLineComment = false }
+        prevChar = char
         continue
       }
       if inString {
@@ -64,6 +82,12 @@ struct RacketIndenter {
         case "\"": inString = false
         default: break
         }
+        prevChar = char
+        continue
+      }
+      if prevChar == "#" && char == "|" {
+        blockCommentDepth += 1
+        prevChar = "\0"
         continue
       }
       switch char {
@@ -75,6 +99,7 @@ struct RacketIndenter {
         if !stack.isEmpty { stack.removeLast() }
       default: break
       }
+      prevChar = char
     }
     return stack.last
   }
