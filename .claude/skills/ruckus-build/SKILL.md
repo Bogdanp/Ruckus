@@ -43,6 +43,7 @@ Fix any violations before finishing.
 
 ## Key Files
 
+- `Ruckus/racket` — Vendored Racket libraries and environment config for runtime execution
 - `Ruckus/Backend.swift` — Auto-generated Swift RPC client (do not edit)
 - `Ruckus/Backend/Backend+shared.swift` — Shared Backend singleton
 - `Project.swift` — Tuist project definition
