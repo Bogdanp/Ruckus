@@ -34,6 +34,14 @@ Flow: `ruckus-core/*.rkt` → `make` → `Backend.swift` (auto-generated) + `res
 - `Project.swift` — Tuist project definition
 - `Tuist/Package.swift` — Swift package dependencies (Noise from `../../Noise/`, OpenSSL)
 
+## Extensions
+
+Place Swift extensions in the appropriate folder:
+- `Ruckus/Backend/` — extensions on auto-generated backend types (e.g. `FilesystemEntry`, `File`, `Folder`)
+- `Ruckus/Extensions/` — extensions on standard library or framework types (e.g. `URL`)
+
+Name extension files as `TypeName+Feature.swift`.
+
 ## Tuist
 
 After modifying `Project.swift`, always run `tuist generate --no-open` to verify.

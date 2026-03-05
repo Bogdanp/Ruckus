@@ -1,62 +1,67 @@
-import NoiseSerde
 import SwiftUI
 
-struct FileBrowserSheet: View {
-  var onOpen: (String) -> Void
+struct SaveBrowserSheet: View {
+  var initialFilename: String
+  var onSave: (String, String) -> Void
   @Environment(\.dismiss) private var dismiss
   @State private var rootPath = ""
   @State private var currentPath = ""
   @State private var entries: [BrowserEntry] = []
   @State private var isLoading = true
   @State private var error: String?
+  @State private var filename = ""
   @State private var newFolderName = ""
   @State private var showNewFolderAlert = false
 
   var body: some View {
     NavigationStack {
-      Group {
-        if isLoading {
-          ProgressView()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if let error {
-          ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
-        } else if entries.isEmpty {
-          ContentUnavailableView("No Files", systemImage: "doc", description: Text("Save a file to see it here."))
-        } else {
-          List(entries) { entry in
-            switch entry.kind {
-            case .folder:
-              Button {
-                currentPath = entry.path
-                Task { await loadEntries() }
-              } label: {
-                Label(entry.name, systemImage: "folder")
-              }
-              .tint(.primary)
-            case .file(let size):
-              Button {
-                onOpen(entry.path)
-                dismiss()
-              } label: {
-                Label {
-                  HStack {
-                    Text(entry.name)
-                    Spacer()
-                    Text(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))
-                      .font(.caption)
-                      .foregroundStyle(.secondary)
-                  }
-                } icon: {
-                  Image(systemName: "doc.text")
-                }
-              }
-              .tint(.primary)
-              .swipeActions(edge: .trailing) {
-                Button(role: .destructive) {
-                  Task { await deleteFile(entry) }
+      VStack(spacing: 0) {
+        HStack {
+          TextField("Filename", text: $filename)
+            .textFieldStyle(.roundedBorder)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+          Button("Save") {
+            let name = filename.hasSuffix(".rkt") ? filename : filename + ".rkt"
+            onSave(currentPath, name)
+            dismiss()
+          }
+          .buttonStyle(.borderedProminent)
+          .disabled(filename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .padding()
+        Divider()
+        Group {
+          if isLoading {
+            ProgressView()
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+          } else if let error {
+            ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
+          } else if entries.isEmpty {
+            ContentUnavailableView("Empty Folder", systemImage: "folder", description: Text("No files here yet."))
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+          } else {
+            List(entries) { entry in
+              switch entry.kind {
+              case .folder:
+                Button {
+                  currentPath = entry.path
+                  Task { await loadEntries() }
                 } label: {
-                  Label("Delete", systemImage: "trash")
+                  Label(entry.name, systemImage: "folder")
                 }
+                .tint(.primary)
+              case .file:
+                Button {
+                  filename = entry.name
+                } label: {
+                  Label {
+                    Text(entry.name)
+                  } icon: {
+                    Image(systemName: "doc.text")
+                  }
+                }
+                .tint(.primary)
               }
             }
           }
@@ -74,7 +79,7 @@ struct FileBrowserSheet: View {
               Label("Back", systemImage: "chevron.left")
             }
           } else {
-            Button("Done") { dismiss() }
+            Button("Cancel") { dismiss() }
           }
         }
         ToolbarItem(placement: .primaryAction) {
@@ -95,13 +100,14 @@ struct FileBrowserSheet: View {
       }
     }
     .task {
+      filename = initialFilename
       await loadRoot()
     }
   }
 
   private var navigationTitle: String {
     if currentPath == rootPath {
-      return "Files"
+      return "Save As"
     }
     return (currentPath as NSString).lastPathComponent
   }
@@ -128,15 +134,6 @@ struct FileBrowserSheet: View {
     }
   }
 
-  private func deleteFile(_ entry: BrowserEntry) async {
-    do {
-      try await Backend.shared.deleteFile(atPath: entry.path)
-      entries.removeAll { $0.id == entry.id }
-    } catch {
-      self.error = error.localizedDescription
-    }
-  }
-
   private func createFolder() async {
     let name = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !name.isEmpty else { return }
@@ -147,22 +144,5 @@ struct FileBrowserSheet: View {
     } catch {
       self.error = error.localizedDescription
     }
-  }
-}
-
-enum BrowserEntryKind {
-  case file(size: UVarint)
-  case folder
-}
-
-struct BrowserEntry: Identifiable {
-  let name: String
-  let path: String
-  let kind: BrowserEntryKind
-  var id: String { path }
-
-  var isFolder: Bool {
-    if case .folder = kind { return true }
-    return false
   }
 }

@@ -4,7 +4,7 @@ struct ContentView: View {
   @State private var store = EditorStore()
   @State private var editorUndoManager: UndoManager?
   @State private var showFileBrowser = false
-  @State private var showSaveAlert = false
+  @State private var showSaveBrowser = false
   @State private var saveFilename = ""
   @State private var shareFileURL: URL?
 
@@ -58,12 +58,11 @@ struct ContentView: View {
           }
         }
       }
-      .alert("Save As", isPresented: $showSaveAlert) {
-        TextField("Filename", text: $saveFilename)
-        Button("Save") {
+      .sheet(isPresented: $showSaveBrowser) {
+        SaveBrowserSheet(initialFilename: saveFilename) { directory, filename in
           guard let doc = store.activeDocument else { return }
-          let name = saveFilename.hasSuffix(".rkt") ? saveFilename : saveFilename + ".rkt"
-          doc.title = name
+          doc.title = filename
+          doc.path = (directory as NSString).appendingPathComponent(filename)
           Task {
             do {
               try await store.save(doc)
@@ -72,9 +71,6 @@ struct ContentView: View {
             }
           }
         }
-        Button("Cancel", role: .cancel) {}
-      } message: {
-        Text("Enter a name for this file.")
       }
       .sheet(item: $shareFileURL) { url in
         ActivitySheet(items: [url])
@@ -184,7 +180,7 @@ struct ContentView: View {
   private func saveAs() {
     guard let doc = store.activeDocument else { return }
     saveFilename = doc.title == "Untitled" ? "" : doc.title
-    showSaveAlert = true
+    showSaveBrowser = true
   }
 
   private func share() {
