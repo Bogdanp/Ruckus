@@ -7,6 +7,18 @@ struct SaveBrowserSheet: View {
   @State private var filename = ""
   @State private var currentDirectory = ""
 
+  private var filenameError: String? {
+    let trimmed = filename.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmed.isEmpty { return nil } // handled by disabled state
+    if trimmed.contains("/") { return "Filename cannot contain \"/\"" }
+    if trimmed.contains("..") { return "Filename cannot contain \"..\"" }
+    let hasControlChars = trimmed.unicodeScalars.contains {
+      $0.value < 0x20 || $0.properties.isDefaultIgnorableCodePoint
+    }
+    if hasControlChars { return "Filename contains invalid characters" }
+    return nil
+  }
+
   var body: some View {
     FolderBrowser(
       rootTitle: "Save As",
@@ -44,9 +56,16 @@ struct SaveBrowserSheet: View {
           dismiss()
         }
         .buttonStyle(.borderedProminent)
-        .disabled(filename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        .disabled(filename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || filenameError != nil)
       }
       .padding()
+      if let error = filenameError {
+        Text(error)
+          .font(.caption)
+          .foregroundStyle(.red)
+          .padding(.horizontal)
+          .padding(.bottom, 4)
+      }
       Divider()
     }
   }

@@ -53,6 +53,9 @@ class EditorStore {
     } else {
       let root = try await Backend.shared.getRootPath()
       let filename = doc.title.hasSuffix(".rkt") ? doc.title : doc.title + ".rkt"
+      guard !filename.contains("/"), !filename.contains("..") else {
+        throw SaveError.invalidFilename
+      }
       path = (root as NSString).appendingPathComponent(filename)
       doc.path = path
       doc.title = filename

@@ -16,3 +16,13 @@ Place Swift extensions in the appropriate folder:
 - `Ruckus/Extensions/` — extensions on standard library or framework types (e.g. `URL`)
 
 Name extension files as `TypeName+Feature.swift`.
+
+## Adding or Removing Swift Files
+
+Tuist auto-globs all `.swift` files under `Ruckus/` and `RuckusTests/` — you
+do NOT need to manually register new files in `Project.swift`. However, after
+adding or removing a file you must regenerate the Xcode project:
+
+    tuist generate --no-open
+
+Without this step, Xcode won't see the new file and the build will fail.

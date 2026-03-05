@@ -42,7 +42,8 @@ After modifying `Project.swift`, run:
     tuist generate --no-open
 
 When adding or removing Swift files, regenerate the project so Xcode
-picks them up.
+picks them up. Tuist auto-globs all `.swift` files — no need to edit
+`Project.swift` for new files.
 
 ## Linting
 
