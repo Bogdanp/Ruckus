@@ -1,8 +1,6 @@
 #lang racket/base
 
 (require noise/backend
-         openssl
-         racket/runtime-path
 
          ;; For effect:
          "executor.rkt"
@@ -11,11 +9,6 @@
 (provide
  main)
 
-(define-runtime-path cacert.cer
-  "cacert.cer")
-
-(ssl-default-verify-sources
- (list cacert.cer))
 
 (define (main in-fd out-fd)
   (module-cache-clear!)

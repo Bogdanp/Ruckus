@@ -23,9 +23,6 @@ ${CORE_ZO}: ${RKT_MAIN_ZO}
 	mkdir -p ${RESOURCES_PATH}
 	rm -fr ${RUNTIME_PATH}
 	./bin/pbraco ctool \
-	  ++lang north \
-	  ++lang racket/base \
-	  ++lib racket/runtime-config \
 	  --runtime ${RUNTIME_PATH} \
 	  --runtime-access ${RUNTIME_NAME} \
 	  --mods $@ ${RKT_SRC}/main.rkt

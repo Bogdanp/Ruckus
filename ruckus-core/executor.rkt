@@ -4,7 +4,8 @@
          noise/backend
          noise/serde
          struct-define
-         syntax/modread)
+         syntax/modread
+         "resolver.rkt")
 
 (provide
  (record-out ExecutionOutput)
@@ -48,8 +49,10 @@
      #;pending-stderr (open-output-bytes))))
 
 (define (evaluate in)
-  (define id (gensym 'document))
-  (parameterize ([current-module-declare-name (make-resolved-module-path id)])
+  (define document-id (string->symbol (format "~a" (object-name in))))
+  (parameterize ([current-module-declare-name (make-resolved-module-path document-id)]
+                 [current-module-name-resolver (make-collects-resolver)]
+                 [current-namespace (make-base-empty-namespace)])
     (eval
      (check-module-form
       (with-module-reading-parameterization
@@ -57,7 +60,7 @@
           (read-syntax #f in)))
       #;expected-module-sym 'ignored
       #;source-v #f))
-    (dynamic-require `',id 0)))
+    (dynamic-require `',document-id 0)))
 
 (define-actor (executor)
   #:state (make-state)
