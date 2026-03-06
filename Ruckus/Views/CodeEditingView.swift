@@ -126,7 +126,7 @@ struct CodeEditingView: UIViewRepresentable {
   }
 
   @MainActor
-  class Coordinator: TextViewDelegate {
+  class Coordinator: @preconcurrency TextViewDelegate {
     var text: Binding<String>
     private let indenter = RacketIndenter()
 

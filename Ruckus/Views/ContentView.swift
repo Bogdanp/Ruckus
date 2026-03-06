@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 struct ContentView: View {
   @State private var store = EditorStore()
@@ -90,8 +91,20 @@ struct ContentView: View {
         Text(shareError ?? "")
       }
       .onOpenURL { url in
-        Task {
-          await store.importFile(from: url)
+        if url.scheme == "ruckus", url.host == "refresh",
+           let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let path = components.queryItems?.first(where: { $0.name == "path" })?.value {
+          Task {
+            do {
+              let output = try await ScriptRunner.run(scriptAtPath: path)
+              ScriptOutputCache.save(output: output, for: path)
+              WidgetCenter.shared.reloadTimelines(ofKind: "ScriptOutputWidget")
+            } catch {}
+          }
+        } else {
+          Task {
+            await store.importFile(from: url)
+          }
         }
       }
     }

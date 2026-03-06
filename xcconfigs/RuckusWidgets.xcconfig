@@ -1,0 +1,13 @@
+#include "Local.xcconfig"
+
+CODE_SIGN_STYLE=Automatic
+CURRENT_PROJECT_VERSION=1
+GENERATE_INFOPLIST_FILE=YES
+MARKETING_VERSION=1.0
+PRODUCT_BUNDLE_IDENTIFIER=io.defn.Ruckus.Widgets
+PRODUCT_NAME=$(TARGET_NAME)
+SWIFT_EMIT_LOC_STRINGS=YES
+TARGETED_DEVICE_FAMILY=1,2
+
+LD_RUNPATH_SEARCH_PATHS[config=Debug]=$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks
+LD_RUNPATH_SEARCH_PATHS[config=Release]=$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks

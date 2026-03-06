@@ -5,6 +5,7 @@ let project = Project(
   settings: .settings(
     base: [
       "SWIFT_VERSION": "6.0",
+      "SWIFT_STRICT_CONCURRENCY": "complete",
       "STRING_CATALOG_GENERATE_SYMBOLS": "YES"
     ],
     configurations: [
@@ -43,14 +44,20 @@ let project = Project(
               ])
             ])
           ])
+        ]),
+        "CFBundleURLTypes": .array([
+          .dictionary([
+            "CFBundleURLSchemes": .array([.string("ruckus")])
+          ])
         ])
       ]),
-      sources: ["Ruckus/**"],
+      sources: ["Ruckus/**", "RuckusShared/**"],
       resources: [
         .folderReference(path: "Ruckus/racket"),
         .folderReference(path: "Ruckus/res"),
         .glob(pattern: "vendor/tree-sitter-racket/queries/highlights.scm")
       ],
+      entitlements: .file(path: "Ruckus/Ruckus.entitlements"),
       scripts: [
         .pre(
           script: "make -C \"${SRCROOT}\"",
@@ -69,12 +76,34 @@ let project = Project(
         .external(name: "Noise"),
         .external(name: "OpenSSL"),
         .external(name: "Runestone"),
-        .target(name: "TreeSitterRacket")
+        .target(name: "TreeSitterRacket"),
+        .target(name: "RuckusWidgets")
       ],
       settings: .settings(
         configurations: [
           .debug(name: "Debug", xcconfig: "./xcconfigs/Ruckus.xcconfig"),
           .release(name: "Release", xcconfig: "./xcconfigs/Ruckus.xcconfig")
+        ]
+      )
+    ),
+    .target(
+      name: "RuckusWidgets",
+      destinations: .iOS,
+      product: .appExtension,
+      bundleId: "io.defn.Ruckus.Widgets",
+      deploymentTargets: .iOS("26.0"),
+      infoPlist: .extendingDefault(with: [
+        "NSExtension": .dictionary([
+          "NSExtensionPointIdentifier": .string("com.apple.widgetkit-extension")
+        ])
+      ]),
+      sources: ["RuckusWidgets/**", "RuckusShared/**"],
+      entitlements: .file(path: "RuckusWidgets/RuckusWidgets.entitlements"),
+      dependencies: [],
+      settings: .settings(
+        configurations: [
+          .debug(name: "Debug", xcconfig: "./xcconfigs/RuckusWidgets.xcconfig"),
+          .release(name: "Release", xcconfig: "./xcconfigs/RuckusWidgets.xcconfig")
         ]
       )
     ),
