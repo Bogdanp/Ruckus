@@ -8,6 +8,7 @@ class EditorStore {
   private(set) var isLoading = true
   var documents: [EditorDocument] = []
   private(set) var activeDocumentID: UUID?
+  private var rootPath: String?
 
   var activeDocument: EditorDocument? {
     guard let id = activeDocumentID else { return nil }
@@ -52,6 +53,7 @@ class EditorStore {
       path = existing
     } else {
       let root = try await Backend.shared.getRootPath()
+      rootPath = root
       let filename = doc.title.hasSuffix(".rkt") ? doc.title : doc.title + ".rkt"
       guard !filename.contains("/"), !filename.contains("..") else {
         throw SaveError.invalidFilename
@@ -131,6 +133,7 @@ class EditorStore {
     let filename = url.lastPathComponent
     guard let content = try? String(contentsOf: url, encoding: .utf8) else { return }
     let root = try? await Backend.shared.getRootPath()
+    if let root { rootPath = root }
     let doc = EditorDocument(title: filename, code: content)
     if let root {
       let destPath = (root as NSString).appendingPathComponent(filename)
@@ -167,6 +170,7 @@ class EditorStore {
     } catch {
       return
     }
+    rootPath = root
     documents.removeAll()
     activeDocumentID = nil
     var restoredAny = false
@@ -202,16 +206,16 @@ class EditorStore {
     }
   }
 
-  private static func relativePath(for absolutePath: String) -> String? {
-    guard let range = absolutePath.range(of: "/files/") else { return nil }
-    return String(absolutePath[range.upperBound...])
+  private func relativePath(for absolutePath: String) -> String? {
+    guard let root = rootPath, absolutePath.hasPrefix(root) else { return nil }
+    return String(absolutePath.dropFirst(root.count).drop(while: { $0 == "/" }))
   }
 
   private func saveSession() {
     guard !isLoading else { return }
-    let relativePaths = documents.compactMap { $0.path.flatMap(Self.relativePath) }
+    let relativePaths = documents.compactMap { $0.path.flatMap(relativePath) }
     UserDefaults.standard.set(relativePaths, forKey: Self.openDocumentPathsKey)
-    let activeRelative = activeDocument?.path.flatMap(Self.relativePath)
+    let activeRelative = activeDocument?.path.flatMap(relativePath)
     UserDefaults.standard.set(activeRelative, forKey: Self.activeDocumentPathKey)
   }
 }
