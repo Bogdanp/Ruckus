@@ -35,6 +35,9 @@ struct CodeEditingView: UIViewRepresentable {
     textView.smartQuotesType = .no
     textView.smartDashesType = .no
     textView.indentStrategy = .space(length: 2)
+    textView.textContainerInset = UIEdgeInsets(top: 8, left: 5, bottom: 8, right: 5)
+    textView.gutterLeadingPadding = 8
+    textView.gutterTrailingPadding = 5
     textView.inputAccessoryView = makeInputAccessoryView(for: textView)
     let state = TextViewState(text: text, theme: DefaultTheme(), language: .racket)
     textView.setState(state)
