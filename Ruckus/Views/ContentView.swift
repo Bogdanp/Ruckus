@@ -1,3 +1,4 @@
+import os
 import SwiftUI
 import WidgetKit
 
@@ -60,7 +61,11 @@ struct ContentView: View {
       .sheet(isPresented: $showFileBrowser) {
         FileBrowserSheet { path in
           Task {
-            try? await store.open(path: path)
+            do {
+              try await store.open(path: path)
+            } catch {
+              Logger.editor.error("\(#function): failed to open file at \(path): \(error)")
+            }
           }
         }
       }
@@ -101,7 +106,11 @@ struct ContentView: View {
                 let root = ScriptManifest.rootPath() else { return }
           let fullPath = (root as NSString).appendingPathComponent(scriptId)
           Task {
-            try? await store.open(path: fullPath)
+            do {
+              try await store.open(path: fullPath)
+            } catch {
+              Logger.editor.error("\(#function): failed to open file from URL: \(error)")
+            }
             await store.execute()
           }
         } else {

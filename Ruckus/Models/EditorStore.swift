@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 @MainActor @Observable
 class EditorStore {
@@ -77,7 +78,13 @@ class EditorStore {
   func close(_ doc: EditorDocument) {
     if let id = doc.executionId {
       AppDelegate.unregister(executionId: id)
-      Task { try? await Backend.shared.stopExecution(id) }
+      Task {
+        do {
+          try await Backend.shared.stopExecution(id)
+        } catch {
+          Logger.editor.warning("\(#function): stop execution failed: \(error)")
+        }
+      }
     }
     documents.removeAll { $0.id == doc.id }
     if activeDocumentID == doc.id {
@@ -138,13 +145,20 @@ class EditorStore {
 
   func importFile(from url: URL) async {
     let filename = url.lastPathComponent
-    guard let content = try? String(contentsOf: url, encoding: .utf8) else { return }
+    guard let content = try? String(contentsOf: url, encoding: .utf8) else {
+      Logger.editor.warning("\(#function): failed to read imported file: \(url.lastPathComponent)")
+      return
+    }
     let root = try? await Backend.shared.getRootPath()
     if let root { rootPath = root }
     let doc = EditorDocument(title: filename, code: content)
     if let root {
       let destPath = (root as NSString).appendingPathComponent(filename)
-      try? await Backend.shared.save(content, to: destPath)
+      do {
+        try await Backend.shared.save(content, to: destPath)
+      } catch {
+        Logger.editor.warning("\(#function): failed to save imported file: \(error)")
+      }
       doc.path = destPath
     }
     documents.append(doc)
@@ -176,6 +190,7 @@ class EditorStore {
     do {
       root = try await Backend.shared.getRootPath()
     } catch {
+      Logger.session.error("\(#function): failed to get root path: \(error)")
       return
     }
     rootPath = root
@@ -194,6 +209,7 @@ class EditorStore {
         }
         restoredAny = true
       } catch {
+        Logger.session.warning("\(#function): failed to restore document at \(fullPath): \(error)")
         continue
       }
     }
@@ -211,7 +227,11 @@ class EditorStore {
     guard let tempPath = doc.tempPath else { return }
     doc.tempPath = nil
     Task {
-      try? await Backend.shared.deleteFile(atPath: tempPath)
+      do {
+        try await Backend.shared.deleteFile(atPath: tempPath)
+      } catch {
+        Logger.editor.warning("\(#function): temp file cleanup failed: \(error)")
+      }
     }
   }
 

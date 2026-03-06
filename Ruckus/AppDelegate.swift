@@ -1,3 +1,4 @@
+import os
 import UIKit
 import WidgetKit
 
@@ -25,7 +26,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
       }
     })
     Task {
-      try? await Backend.shared.markOnExecutorStepInstalled()
+      do {
+        try await Backend.shared.markOnExecutorStepInstalled()
+      } catch {
+        Logger.backend.error("\(#function): failed to mark executor step installed: \(error)")
+      }
     }
     return true
   }
@@ -44,7 +49,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     guard let tempPath = doc.tempPath else { return }
     doc.tempPath = nil
     Task {
-      try? await Backend.shared.deleteFile(atPath: tempPath)
+      do {
+        try await Backend.shared.deleteFile(atPath: tempPath)
+      } catch {
+        Logger.backend.warning("\(#function): temp file cleanup failed: \(error)")
+      }
     }
   }
 
