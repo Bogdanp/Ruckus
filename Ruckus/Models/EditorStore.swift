@@ -6,7 +6,13 @@ class EditorStore {
   private static let activeDocumentPathKey = "activeDocumentPath"
 
   private(set) var isLoading = true
-  var documents: [EditorDocument] = []
+  private(set) var documents: [EditorDocument] = [] {
+    didSet {
+      if let id = activeDocumentID, !documents.contains(where: { $0.id == id }) {
+        activeDocumentID = documents.last?.id
+      }
+    }
+  }
   private(set) var activeDocumentID: UUID?
   private var rootPath: String?
 
