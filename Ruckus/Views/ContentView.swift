@@ -171,7 +171,7 @@ struct ContentView: View {
           Label("Run", systemImage: "play.fill")
             .labelStyle(.iconOnly)
         }
-        .disabled(store.activeDocument == nil)
+        .disabled(store.activeDocument == nil || store.activeDocument?.isEvaluating == true)
       }
     }
   }

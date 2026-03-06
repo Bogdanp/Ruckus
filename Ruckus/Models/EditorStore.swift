@@ -89,7 +89,7 @@ class EditorStore {
   }
 
   func execute() async {
-    guard let doc = activeDocument else { return }
+    guard let doc = activeDocument, !doc.isEvaluating else { return }
     if doc.isDirty {
       do {
         try await save(doc)
