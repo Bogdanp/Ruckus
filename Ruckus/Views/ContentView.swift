@@ -7,6 +7,7 @@ struct ContentView: View {
   @State private var showSaveBrowser = false
   @State private var saveFilename = ""
   @State private var shareFileURL: URL?
+  @State private var shareError: String?
 
   var body: some View {
     NavigationStack {
@@ -74,6 +75,19 @@ struct ContentView: View {
       }
       .sheet(item: $shareFileURL) { url in
         ActivitySheet(items: [url])
+      }
+      .onChange(of: shareFileURL) { oldURL, _ in
+        if let oldURL {
+          try? FileManager.default.removeItem(at: oldURL.deletingLastPathComponent())
+        }
+      }
+      .alert("Share Failed", isPresented: Binding(
+        get: { shareError != nil },
+        set: { if !$0 { shareError = nil } }
+      )) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(shareError ?? "")
       }
       .onOpenURL { url in
         Task {
@@ -187,10 +201,14 @@ struct ContentView: View {
     guard let doc = store.activeDocument else { return }
     let filename = doc.title.hasSuffix(".rkt") ? doc.title : doc.title + ".rkt"
     let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-    try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-    let fileURL = tempDir.appendingPathComponent(filename)
-    try? doc.code.write(to: fileURL, atomically: true, encoding: .utf8)
-    shareFileURL = fileURL
+    do {
+      try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+      let fileURL = tempDir.appendingPathComponent(filename)
+      try doc.code.write(to: fileURL, atomically: true, encoding: .utf8)
+      shareFileURL = fileURL
+    } catch {
+      shareError = error.localizedDescription
+    }
   }
 }
 
