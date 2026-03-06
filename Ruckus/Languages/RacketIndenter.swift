@@ -129,7 +129,6 @@ struct RacketIndenter {
     "struct", "class", "class*",
     "module", "module+", "module*",
     "parameterize", "with-syntax",
-    "syntax-case", "syntax-rules", "syntax-parse",
-    "provide", "require"
+    "syntax-case", "syntax-rules", "syntax-parse"
   ]
 }
