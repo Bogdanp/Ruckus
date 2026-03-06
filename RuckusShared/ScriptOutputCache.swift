@@ -2,6 +2,7 @@ import Foundation
 
 enum ScriptOutputCache {
   static let suiteName = "group.io.defn.Ruckus"
+  static let widgetKind = "ScriptOutputWidget"
 
   private static let keyPrefix = "scriptOutput:"
   private static let timestampSuffix = ":timestamp"
@@ -10,18 +11,19 @@ enum ScriptOutputCache {
     UserDefaults(suiteName: suiteName)
   }
 
-  static func save(output: String, for scriptPath: String) {
+  static func save(output: String, for scriptId: String) {
     let store = defaults
-    store?.set(output, forKey: keyPrefix + scriptPath)
-    store?.set(Date().timeIntervalSince1970, forKey: keyPrefix + scriptPath + timestampSuffix)
+    store?.set(output, forKey: keyPrefix + scriptId)
+    store?.set(Date().timeIntervalSince1970, forKey: keyPrefix + scriptId + timestampSuffix)
+    store?.synchronize()
   }
 
-  static func load(for scriptPath: String) -> (output: String, date: Date)? {
+  static func load(for scriptId: String) -> (output: String, date: Date)? {
     guard let store = defaults,
-          let output = store.string(forKey: keyPrefix + scriptPath) else {
+          let output = store.string(forKey: keyPrefix + scriptId) else {
       return nil
     }
-    let timestamp = store.double(forKey: keyPrefix + scriptPath + timestampSuffix)
+    let timestamp = store.double(forKey: keyPrefix + scriptId + timestampSuffix)
     guard timestamp > 0 else { return nil }
     return (output, Date(timeIntervalSince1970: timestamp))
   }

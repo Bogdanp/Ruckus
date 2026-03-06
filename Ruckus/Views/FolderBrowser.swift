@@ -4,6 +4,7 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
   var rootTitle: String
   var dismissLabel: String
   var allowsDeletion: Bool = false
+  var onDelete: ((BrowserEntry) -> Void)?
   @Binding var currentDirectory: String
   @ViewBuilder var header: () -> Header
   @ViewBuilder var fileRow: (BrowserEntry) -> FileRow
@@ -141,6 +142,7 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
     do {
       try await Backend.shared.deleteFile(atPath: entry.path)
       entries.removeAll { $0.id == entry.id }
+      onDelete?(entry)
     } catch {
       self.error = error.localizedDescription
     }

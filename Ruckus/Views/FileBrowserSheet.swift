@@ -11,6 +11,11 @@ struct FileBrowserSheet: View {
       rootTitle: "Files",
       dismissLabel: "Done",
       allowsDeletion: true,
+      onDelete: { entry in
+        if case .file = entry.kind {
+          ScriptManifest.remove(script: entry.name)
+        }
+      },
       currentDirectory: $currentDirectory,
       header: { EmptyView() },
       fileRow: { entry in

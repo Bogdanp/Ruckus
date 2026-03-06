@@ -1,14 +1,18 @@
 import UIKit
+import WidgetKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {
   private static var executions: [UInt64: Weak<EditorDocument>] = [:]
+  private static var stdoutBuffers: [UInt64: String] = [:]
 
   static func register(_ doc: EditorDocument, executionId: UInt64) {
     executions[executionId] = Weak(value: doc)
+    stdoutBuffers[executionId] = ""
   }
 
   static func unregister(executionId: UInt64) {
     executions.removeValue(forKey: executionId)
+    stdoutBuffers.removeValue(forKey: executionId)
   }
 
   func application(
@@ -24,6 +28,16 @@ class AppDelegate: NSObject, UIApplicationDelegate {
       try? await Backend.shared.markOnExecutorStepInstalled()
     }
     return true
+  }
+
+  private static func saveWidgetCache(executionId: UInt64, doc: EditorDocument) {
+    let stdout = stdoutBuffers.removeValue(forKey: executionId) ?? ""
+    guard let fullPath = doc.path,
+          let root = ScriptManifest.rootPath(),
+          fullPath.hasPrefix(root) else { return }
+    let scriptId = String(fullPath.dropFirst(root.count).drop { $0 == "/" })
+    ScriptOutputCache.save(output: stdout, for: scriptId)
+    WidgetCenter.shared.reloadTimelines(ofKind: ScriptOutputCache.widgetKind)
   }
 
   private static func cleanupTempFile(_ doc: EditorDocument) {
@@ -51,6 +65,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
         if let text = String(data: output.stdout, encoding: .utf8), !text.isEmpty {
           doc.appendOutput(text, stream: .stdout)
+          stdoutBuffers[executionId, default: ""] += text
         }
         if let text = String(data: output.stderr, encoding: .utf8), !text.isEmpty {
           doc.appendOutput(text, stream: .stderr)
@@ -58,6 +73,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         if isDone {
           doc.isEvaluating = false
           doc.executionId = nil
+          saveWidgetCache(executionId: executionId, doc: doc)
           executions.removeValue(forKey: executionId)
           cleanupTempFile(doc)
         }
@@ -65,6 +81,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         doc.appendOutput(error.localizedDescription + "\n", stream: .stderr)
         doc.isEvaluating = false
         doc.executionId = nil
+        stdoutBuffers.removeValue(forKey: executionId)
         executions.removeValue(forKey: executionId)
         cleanupTempFile(doc)
       }

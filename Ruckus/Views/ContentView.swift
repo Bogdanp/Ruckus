@@ -95,15 +95,14 @@ struct ContentView: View {
         Text(shareError ?? "")
       }
       .onOpenURL { url in
-        if url.scheme == "ruckus", url.host == "refresh",
-           let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-           let path = components.queryItems?.first(where: { $0.name == "path" })?.value {
+        if url.scheme == "ruckus", url.host == "refresh" {
+          guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                let scriptId = components.queryItems?.first(where: { $0.name == "script" })?.value,
+                let root = ScriptManifest.rootPath() else { return }
+          let fullPath = (root as NSString).appendingPathComponent(scriptId)
           Task {
-            do {
-              let output = try await ScriptRunner.run(scriptAtPath: path)
-              ScriptOutputCache.save(output: output, for: path)
-              WidgetCenter.shared.reloadTimelines(ofKind: "ScriptOutputWidget")
-            } catch {}
+            try? await store.open(path: fullPath)
+            await store.execute()
           }
         } else {
           Task {

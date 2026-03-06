@@ -71,6 +71,7 @@ class EditorStore {
     try await Backend.shared.save(doc.code, to: path)
     doc.isDirty = false
     saveSession()
+    await refreshScriptManifest()
   }
 
   func close(_ doc: EditorDocument) {
@@ -149,6 +150,7 @@ class EditorStore {
     documents.append(doc)
     activeDocumentID = doc.id
     saveSession()
+    await refreshScriptManifest()
   }
 
   func revert() async {
@@ -202,6 +204,7 @@ class EditorStore {
     } else {
       newDocument()
     }
+    await refreshScriptManifest()
   }
 
   func cleanupTempFile(_ doc: EditorDocument) {
@@ -210,6 +213,17 @@ class EditorStore {
     Task {
       try? await Backend.shared.deleteFile(atPath: tempPath)
     }
+  }
+
+  private func refreshScriptManifest() async {
+    guard let root = rootPath else { return }
+    let entries = (try? await Backend.shared.listFiles(atPath: root)) ?? []
+    let scripts = entries.compactMap { entry -> String? in
+      guard case .file(let file) = entry,
+            file.path.hasSuffix(".rkt") else { return nil }
+      return (file.path as NSString).lastPathComponent
+    }
+    ScriptManifest.update(rootPath: root, scripts: scripts)
   }
 
   private func relativePath(for absolutePath: String) -> String? {
