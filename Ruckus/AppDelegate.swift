@@ -1,10 +1,10 @@
 import UIKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-  private static var executions: [UInt64: EditorDocument] = [:]
+  private static var executions: [UInt64: Weak<EditorDocument>] = [:]
 
   static func register(_ doc: EditorDocument, executionId: UInt64) {
-    executions[executionId] = doc
+    executions[executionId] = Weak(value: doc)
   }
 
   static func unregister(executionId: UInt64) {
@@ -35,7 +35,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
   }
 
   static func step(_ executionId: UInt64) {
-    guard let doc = executions[executionId] else { return }
+    guard let doc = executions[executionId]?.value else { return }
     Task {
       do {
         let step = try await Backend.shared.stepExecution(executionId)
