@@ -85,7 +85,8 @@ let project = Project(
       bundleId: "io.defn.RuckusTests",
       sources: ["RuckusTests/**"],
       dependencies: [
-        .target(name: "Ruckus")
+        .target(name: "Ruckus"),
+        .external(name: "Semaphore")
       ]
     ),
     .target(

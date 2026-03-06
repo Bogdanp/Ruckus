@@ -12,6 +12,8 @@ struct AsyncButton<Label>: View where Label: View {
   var options = Set(Option.allCases)
   @ViewBuilder let label: () -> Label
 
+  var trigger: Binding<Bool>?
+
   @State private var loading = false
   @State private var success = false
   @State private var running = false
@@ -20,35 +22,7 @@ struct AsyncButton<Label>: View where Label: View {
 
   var body: some View {
     Button(role: role) {
-      task?.cancel()
-      task = Task {
-        running = true
-        let progressTask = Task {
-          try await Task.sleep(for: .milliseconds(250))
-          withAnimation {
-            loading = true
-          }
-        }
-        await action()
-        guard !Task.isCancelled else { return }
-        progressTask.cancel()
-        withAnimation {
-          loading = false
-          running = false
-        }
-        if options.contains(.showsSuccessIcon) {
-          successTask?.cancel()
-          successTask = Task {
-            withAnimation {
-              success = true
-            }
-            try await Task.sleep(for: .seconds(1))
-            withAnimation {
-              success = false
-            }
-          }
-        }
-      }
+      fire()
     } label: {
       ZStack {
         let isShowingProgress = options.contains(.showsProgressView) && loading
@@ -64,6 +38,50 @@ struct AsyncButton<Label>: View where Label: View {
       }
     }
     .disabled(options.contains(.disabledWhileRunning) && running)
+    .onDisappear {
+      task?.cancel()
+      task = nil
+      successTask?.cancel()
+      successTask = nil
+    }
+    .onChange(of: trigger?.wrappedValue) {
+      if trigger?.wrappedValue == true {
+        fire()
+        trigger?.wrappedValue = false
+      }
+    }
+  }
+
+  private func fire() {
+    task?.cancel()
+    task = Task {
+      running = true
+      let progressTask = Task {
+        try await Task.sleep(for: .milliseconds(250))
+        withAnimation {
+          loading = true
+        }
+      }
+      await action()
+      guard !Task.isCancelled else { return }
+      progressTask.cancel()
+      withAnimation {
+        loading = false
+        running = false
+      }
+      if options.contains(.showsSuccessIcon) {
+        successTask?.cancel()
+        successTask = Task {
+          withAnimation {
+            success = true
+          }
+          try await Task.sleep(for: .seconds(1))
+          withAnimation {
+            success = false
+          }
+        }
+      }
+    }
   }
 }
 

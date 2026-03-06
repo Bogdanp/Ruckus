@@ -14,6 +14,7 @@ let package = Package(
   dependencies: [
     .package(path: "../../Noise"),
     .package(url: "https://github.com/krzyzanowskim/OpenSSL", from: "3.6.0001"),
-    .package(url: "https://github.com/simonbs/runestone.git", from: "0.5.0")
+    .package(url: "https://github.com/simonbs/runestone.git", from: "0.5.0"),
+    .package(url: "https://github.com/groue/Semaphore.git", from: "0.1.0")
   ]
 )
