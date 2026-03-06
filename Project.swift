@@ -55,7 +55,8 @@ let project = Project(
       resources: [
         .folderReference(path: "Ruckus/racket"),
         .folderReference(path: "Ruckus/res"),
-        .glob(pattern: "vendor/tree-sitter-racket/queries/highlights.scm")
+        .glob(pattern: "vendor/tree-sitter-racket/queries/highlights.scm"),
+        .glob(pattern: "Ruckus/Generated/licenses.json")
       ],
       entitlements: .file(path: "Ruckus/Ruckus.entitlements"),
       scripts: [

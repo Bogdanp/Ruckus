@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SRCROOT="$(cd "$(dirname "$0")/.." && pwd)"
+OUT="$SRCROOT/Ruckus/Generated/licenses.json"
+mkdir -p "$(dirname "$OUT")"
+
+declare -A seen
+entries=()
+
+add_entry() {
+  local name=$1 file=$2
+  if [[ -n "${seen[$name]:-}" ]]; then
+    return
+  fi
+  seen[$name]=1
+  local text
+  text=$(jq -Rs . < "$file")
+  entries+=("{\"name\": \"$name\", \"text\": $text}")
+}
+
+add_dir_entry() {
+  local name=$1 dir=$2
+  if [[ -n "${seen[$name]:-}" ]]; then
+    return
+  fi
+  seen[$name]=1
+  local combined=""
+  while IFS= read -r f; do
+    if [[ -n "$combined" ]]; then
+      combined+=$'\n\n---\n\n'
+    fi
+    combined+=$(cat "$f")
+  done < <(find "$dir" -maxdepth 1 \( -name 'LICENSE*' -o -name 'COPYING*' \) | sort)
+  local text
+  text=$(printf '%s' "$combined" | jq -Rs .)
+  entries+=("{\"name\": \"$name\", \"text\": $text}")
+}
+
+# Vendor and SPM checkouts (single LICENSE per directory).
+while IFS= read -r f; do
+  name=$(basename "$(dirname "$f")")
+  add_entry "$name" "$f"
+done < <(find "$SRCROOT/vendor" "$SRCROOT/Tuist/.build/checkouts" -maxdepth 2 -name 'LICENSE*' 2>/dev/null | sort)
+
+# Racket itself (Apache 2.0).
+add_entry "Racket" "$SRCROOT/Ruckus/racket/share/racket-lib/LICENSE"
+
+# Racket packages — collect all license/copying files per package.
+for pkg_dir in "$SRCROOT/Ruckus/racket/share"/*/; do
+  pkg_name=$(basename "$pkg_dir")
+  if find "$pkg_dir" -maxdepth 1 \( -name 'LICENSE*' -o -name 'COPYING*' \) -print -quit | grep -q .; then
+    add_dir_entry "$pkg_name" "$pkg_dir"
+  fi
+done
+
+printf "[\n" > "$OUT"
+for i in "${!entries[@]}"; do
+  if [ "$i" -gt 0 ]; then
+    printf ",\n" >> "$OUT"
+  fi
+  printf "  %s" "${entries[$i]}" >> "$OUT"
+done
+printf "\n]\n" >> "$OUT"
+
+echo "Collected ${#entries[@]} licenses into $OUT"

@@ -9,6 +9,7 @@ struct ContentView: View {
   @State private var saveFilename = ""
   @State private var shareFileURL: URL?
   @State private var shareError: String?
+  @State private var showSettings = false
 
   var body: some View {
     NavigationStack {
@@ -52,6 +53,9 @@ struct ContentView: View {
       .toolbar(content: trailingToolbar)
       .task {
         await store.restoreSession()
+      }
+      .sheet(isPresented: $showSettings) {
+        SettingsView()
       }
       .sheet(isPresented: $showFileBrowser) {
         FileBrowserSheet { path in
@@ -160,9 +164,9 @@ struct ContentView: View {
   private func leadingToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .topBarLeading) {
       Button {
-        showFileBrowser = true
+        showSettings = true
       } label: {
-        Image(systemName: "folder")
+        Image(systemName: "gearshape")
       }
     }
   }
