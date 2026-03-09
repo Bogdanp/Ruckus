@@ -18,6 +18,14 @@ struct SettingsView: View {
           }
         }
         Section {
+          NavigationLink {
+            DocumentationView()
+          } label: {
+            Label("Documentation", systemImage: "book.fill")
+              .labelStyle(SettingsLabelStyle(backgroundColor: .orange))
+          }
+        }
+        Section {
           Button(action: requestReview) {
             Label("Leave a Review", systemImage: "star.fill")
               .labelStyle(SettingsLabelStyle(backgroundColor: .yellow))
