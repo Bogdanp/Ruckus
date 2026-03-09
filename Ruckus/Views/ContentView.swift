@@ -36,10 +36,12 @@ struct ContentView: View {
                     doc.isDirty = true
                   }
                 ),
-                textViewUndoManager: $editorUndoManager
+                textViewUndoManager: $editorUndoManager,
+                completions: doc.completions
               )
               .id(doc.id)
               .frame(maxWidth: .infinity, maxHeight: .infinity)
+              .layoutPriority(-1)
               if doc.output.length > 0 {
                 OutputPanelView(text: doc.output)
               }

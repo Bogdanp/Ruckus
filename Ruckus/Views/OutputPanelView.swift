@@ -7,7 +7,7 @@ struct OutputPanelView: View {
   var body: some View {
     Divider()
     OutputTextView(text: text)
-      .frame(maxHeight: 200)
+      .frame(maxHeight: 150)
       .background(.background)
   }
 }

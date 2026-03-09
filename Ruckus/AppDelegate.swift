@@ -57,6 +57,20 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
   }
 
+  private static func fetchCompletions(executionId: UInt64, doc: EditorDocument) {
+    Task {
+      do {
+        let symbols = try await Backend.shared.getExecutionSymbols(executionId)
+        let sorted = symbols.sorted()
+        if !sorted.isEmpty {
+          doc.completions = sorted
+        }
+      } catch {
+        Logger.backend.warning("\(#function): failed to fetch completions: \(error)")
+      }
+    }
+  }
+
   static func step(_ executionId: UInt64) {
     guard let doc = executions[executionId]?.value else { return }
     Task {
@@ -92,6 +106,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
           doc.isEvaluating = false
           doc.executionId = nil
           saveWidgetCache(executionId: executionId, doc: doc)
+          fetchCompletions(executionId: executionId, doc: doc)
           executions.removeValue(forKey: executionId)
           outputBuffers.removeValue(forKey: executionId)
           cleanupTempFile(doc)

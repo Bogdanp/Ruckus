@@ -4,6 +4,7 @@ import SwiftUI
 struct CodeEditingView: UIViewRepresentable {
   @Binding var text: String
   @Binding var textViewUndoManager: UndoManager?
+  var completions: [String] = []
 
   func makeCoordinator() -> Coordinator {
     Coordinator(text: $text)
@@ -41,7 +42,14 @@ struct CodeEditingView: UIViewRepresentable {
     textView.inputAccessoryView = makeInputAccessoryView(for: textView)
     let state = TextViewState(text: text, theme: DefaultTheme(), language: .racket)
     textView.setState(state)
+
+    let popover = CompletionPopover { suffix in
+      textView.insertText(suffix)
+    }
+    context.coordinator.popover = popover
+
     DispatchQueue.main.async {
+      textView.window?.addSubview(popover)
       textViewUndoManager = textView.undoManager
     }
     return textView
@@ -100,7 +108,10 @@ struct CodeEditingView: UIViewRepresentable {
   }
 
   private func makeInputAccessoryView(for textView: TextView) -> UIInputView {
-    let bar = UIInputView(frame: CGRect(x: 0, y: 0, width: 0, height: 76), inputViewStyle: .keyboard)
+    let bar = UIInputView(
+      frame: CGRect(x: 0, y: 0, width: 0, height: 76),
+      inputViewStyle: .keyboard
+    )
     bar.allowsSelfSizing = true
 
     let symbolsRow = makeSnippetRow(snippets: Self.symbols, for: textView)
@@ -122,16 +133,28 @@ struct CodeEditingView: UIViewRepresentable {
     return bar
   }
 
+  static func dismantleUIView(_ textView: TextView, coordinator: Coordinator) {
+    coordinator.popover?.removeFromSuperview()
+    coordinator.popover = nil
+  }
+
   func updateUIView(_ textView: TextView, context: Context) {
     if textView.text != text {
       textView.text = text
     }
+    context.coordinator.allCompletions = completions
   }
 
   @MainActor
   class Coordinator: @preconcurrency TextViewDelegate {
     var text: Binding<String>
+    var allCompletions: [String] = []
+    var popover: CompletionPopover?
+    private var didType = false
     private let indenter = RacketIndenter()
+
+    private static let wordChars = CharacterSet.alphanumerics
+      .union(CharacterSet(charactersIn: "-_!?*/+<>="))
 
     init(text: Binding<String>) {
       self.text = text
@@ -139,6 +162,15 @@ struct CodeEditingView: UIViewRepresentable {
 
     func textViewDidChange(_ textView: TextView) {
       text.wrappedValue = textView.text
+      didType = true
+      updatePopover(for: textView)
+    }
+
+    func textViewDidChangeSelection(_ textView: TextView) {
+      if !didType {
+        popover?.dismiss()
+      }
+      didType = false
     }
 
     func textView(
@@ -154,6 +186,61 @@ struct CodeEditingView: UIViewRepresentable {
       guard !indent.isEmpty else { return true }
       textView.insertText("\n" + indent)
       return false
+    }
+
+    private func updatePopover(for textView: TextView) {
+      guard let popover else { return }
+      let prefix = currentWordPrefix(in: textView)
+      let filtered: [String]
+      if prefix.isEmpty {
+        filtered = []
+      } else {
+        filtered = allCompletions.filter {
+          $0.hasPrefix(prefix) && $0 != prefix
+        }
+      }
+      guard !filtered.isEmpty else {
+        popover.dismiss()
+        return
+      }
+      popover.update(items: Array(filtered.prefix(20)), prefix: prefix)
+      positionPopover(popover, in: textView)
+    }
+
+    private func positionPopover(
+      _ popover: CompletionPopover, in textView: TextView
+    ) {
+      guard let selectedRange = textView.selectedTextRange,
+            let window = textView.window
+      else { return }
+      let caretRect = textView.caretRect(for: selectedRange.start)
+      let caretInWindow = textView.convert(caretRect, to: window)
+      let originX = caretInWindow.maxX + 2
+      let originY = caretInWindow.minY
+      let availableWidth = window.bounds.width - originX
+      popover.frame.origin = CGPoint(x: originX, y: max(4, originY))
+      popover.frame.size.width = min(popover.frame.width, max(0, availableWidth))
+    }
+
+    private func currentWordPrefix(in textView: TextView) -> String {
+      let text = textView.text
+      guard let selectedRange = textView.selectedTextRange else { return "" }
+      let cursorPos = textView.offset(
+        from: textView.beginningOfDocument, to: selectedRange.start
+      )
+      guard cursorPos >= 0 else { return "" }
+      let idx = text.index(
+        text.startIndex, offsetBy: min(cursorPos, text.count)
+      )
+      var start = idx
+      while start > text.startIndex {
+        let prev = text.index(before: start)
+        guard let scalar = text[prev].unicodeScalars.first,
+              Self.wordChars.contains(scalar) else { break }
+        start = prev
+      }
+      let prefix = String(text[start..<idx])
+      return prefix.count >= 2 ? prefix : ""
     }
   }
 }
