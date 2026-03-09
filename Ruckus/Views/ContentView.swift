@@ -3,7 +3,7 @@ import SwiftUI
 import WidgetKit
 
 struct ContentView: View {
-  @State private var store = EditorStore()
+  @Environment(EditorStore.self) private var store
   @State private var editorSettings = EditorSettings()
   @State private var editorUndoManager: UndoManager?
   @State private var showFileBrowser = false
@@ -260,4 +260,5 @@ struct ContentView: View {
 
 #Preview {
   ContentView()
+    .environment(EditorStore.shared)
 }

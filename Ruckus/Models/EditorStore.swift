@@ -3,6 +3,8 @@ import os
 
 @MainActor @Observable
 class EditorStore {
+  static let shared = EditorStore()
+
   private static let openDocumentPathsKey = "openDocumentPaths"
   private static let activeDocumentPathKey = "activeDocumentPath"
 
@@ -15,7 +17,6 @@ class EditorStore {
     }
   }
   private(set) var activeDocumentID: UUID?
-  private var rootPath: String?
 
   var activeDocument: EditorDocument? {
     guard let id = activeDocumentID else { return nil }
@@ -60,7 +61,6 @@ class EditorStore {
       path = existing
     } else {
       let root = try await Backend.shared.getRootPath()
-      rootPath = root
       let filename = doc.title.hasSuffix(".rkt") ? doc.title : doc.title + ".rkt"
       guard !filename.contains("/"), !filename.contains("..") else {
         throw SaveError.invalidFilename
@@ -150,7 +150,6 @@ class EditorStore {
       return
     }
     let root = try? await Backend.shared.getRootPath()
-    if let root { rootPath = root }
     let doc = EditorDocument(title: filename, code: content)
     if let root {
       let destPath = (root as NSString).appendingPathComponent(filename)
@@ -193,7 +192,6 @@ class EditorStore {
       Logger.session.error("\(#function): failed to get root path: \(error)")
       return
     }
-    rootPath = root
     documents.removeAll()
     activeDocumentID = nil
     var restoredAny = false
@@ -236,7 +234,7 @@ class EditorStore {
   }
 
   private func refreshScriptManifest() async {
-    guard let root = rootPath else { return }
+    guard let root = try? await Backend.shared.getRootPath() else { return }
     let entries = (try? await Backend.shared.listFiles(atPath: root)) ?? []
     let scripts = entries.compactMap { entry -> String? in
       guard case .file(let file) = entry,
@@ -246,16 +244,30 @@ class EditorStore {
     ScriptManifest.update(rootPath: root, scripts: scripts)
   }
 
-  private func relativePath(for absolutePath: String) -> String? {
-    guard let root = rootPath, absolutePath.hasPrefix(root) else { return nil }
-    return String(absolutePath.dropFirst(root.count).drop(while: { $0 == "/" }))
+  func relativePath(for doc: EditorDocument) async -> String? {
+    guard let path = doc.path,
+          let root = try? await Backend.shared.getRootPath(),
+          path.hasPrefix(root) else { return nil }
+    return String(path.dropFirst(root.count).drop(while: { $0 == "/" }))
   }
 
   private func saveSession() {
     guard !isLoading else { return }
-    let relativePaths = documents.compactMap { $0.path.flatMap(relativePath) }
+    Task { await saveSessionAsync() }
+  }
+
+  private func saveSessionAsync() async {
+    var relativePaths = [String]()
+    for doc in documents {
+      if let rel = await relativePath(for: doc) {
+        relativePaths.append(rel)
+      }
+    }
     UserDefaults.standard.set(relativePaths, forKey: Self.openDocumentPathsKey)
-    let activeRelative = activeDocument?.path.flatMap(relativePath)
+    var activeRelative: String?
+    if let doc = activeDocument {
+      activeRelative = await relativePath(for: doc)
+    }
     UserDefaults.standard.set(activeRelative, forKey: Self.activeDocumentPathKey)
   }
 }

@@ -35,12 +35,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     return true
   }
 
-  private static func saveWidgetCache(executionId: UInt64, doc: EditorDocument) {
+  private static func saveWidgetCache(executionId: UInt64, doc: EditorDocument) async {
     let stdout = outputBuffers[executionId]?.stdout.decoded ?? ""
-    guard let fullPath = doc.path,
-          let root = ScriptManifest.rootPath(),
-          fullPath.hasPrefix(root) else { return }
-    let scriptId = String(fullPath.dropFirst(root.count).drop { $0 == "/" })
+    guard let scriptId = await EditorStore.shared.relativePath(for: doc) else {
+      Logger.backend.debug("saveWidgetCache: skipped — no relative path for execution \(executionId)")
+      return
+    }
     ScriptOutputCache.save(output: stdout, for: scriptId)
     WidgetCenter.shared.reloadTimelines(ofKind: ScriptOutputCache.widgetKind)
   }
@@ -105,7 +105,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
           }
           doc.isEvaluating = false
           doc.executionId = nil
-          saveWidgetCache(executionId: executionId, doc: doc)
+          await saveWidgetCache(executionId: executionId, doc: doc)
           fetchCompletions(executionId: executionId, doc: doc)
           executions.removeValue(forKey: executionId)
           outputBuffers.removeValue(forKey: executionId)
