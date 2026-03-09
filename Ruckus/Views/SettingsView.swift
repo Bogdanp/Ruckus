@@ -46,7 +46,7 @@ struct SettingsView: View {
       }
       .presentationDragIndicator(.visible)
       .navigationTitle("Settings")
-      .navigationBarTitleDisplayMode(.inline)
+      .navigationBarTitleDisplayMode(.large)
       .toolbar {
         ToolbarItem(placement: .confirmationAction) {
           Button("Done") { dismiss() }
