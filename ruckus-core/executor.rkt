@@ -52,10 +52,15 @@
      #;pending-stderr (open-output-bytes))))
 
 (define (evaluate in)
-  (define document-id (string->symbol (format "~a" (object-name in))))
+  (define-values (document-dir document-name _is-dir?)
+    (split-path (format "~a" (object-name in))))
+  (define document-id
+    (string->symbol (path->string document-name)))
+  (define document-spec `',document-id)
   (parameterize ([current-module-declare-name (make-resolved-module-path document-id)]
                  [current-module-name-resolver (make-collects-resolver)]
-                 [current-namespace (make-base-empty-namespace)])
+                 [current-namespace (make-base-empty-namespace)]
+                 [current-directory document-dir])
     (eval
      (check-module-form
       (with-module-reading-parameterization
@@ -63,8 +68,8 @@
           (read-syntax #f in)))
       #;expected-module-sym 'ignored
       #;source-v #f))
-    (namespace-require `',document-id)
-    (namespace-mapped-symbols (module->namespace `',document-id))))
+    (namespace-require document-spec)
+    (namespace-mapped-symbols (module->namespace document-spec))))
 
 (define-actor (executor)
   #:state (make-state)
