@@ -14,6 +14,12 @@ struct SettingsView: View {
               .labelStyle(SettingsLabelStyle(backgroundColor: .yellow))
           }
           NavigationLink {
+            SupportView()
+          } label: {
+            Label("Support", systemImage: "lifepreserver")
+              .labelStyle(SettingsLabelStyle(backgroundColor: .accentColor))
+          }
+          NavigationLink {
             AboutView()
           } label: {
             Label("About", systemImage: "info")
@@ -56,7 +62,7 @@ struct SettingsView: View {
   }
 }
 
-private struct SettingsLabelStyle: LabelStyle {
+struct SettingsLabelStyle: LabelStyle {
   let backgroundColor: Color
 
   func makeBody(configuration: Configuration) -> some View {

@@ -38,8 +38,14 @@ Execute a task from the `docs/tasks/` directory.
 5. **Implement the fix.** Make the changes. Follow existing code style and
    conventions. Keep the change minimal — don't refactor surrounding code.
 
-6. **Verify.** Run `swiftlint lint` on modified Swift files. If tests are
-   relevant (e.g. indenter changes), run the test suite. Fix any issues.
+6. **Verify.** Run `swiftlint lint` on modified Swift files. Then **build**
+   the project to catch compiler errors (access control, missing imports, etc.):
+
+       xcodebuild build -workspace Ruckus.xcworkspace -scheme Ruckus \
+         -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+
+   If tests are relevant (e.g. indenter changes), run the test suite too.
+   Fix any issues before proceeding.
 
 7. **Delete the task file.** Once the fix is verified, delete the task
    markdown from `docs/tasks/`.
