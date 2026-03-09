@@ -12,6 +12,7 @@ struct ContentView: View {
   @State private var shareFileURL: URL?
   @State private var shareError: String?
   @State private var showSettings = false
+  @State private var showOutput = false
 
   var body: some View {
     NavigationStack {
@@ -44,9 +45,6 @@ struct ContentView: View {
               .id(doc.id)
               .frame(maxWidth: .infinity, maxHeight: .infinity)
               .layoutPriority(-1)
-              if doc.output.length > 0 {
-                OutputPanelView(text: doc.output)
-              }
             }
           }
         }
@@ -58,6 +56,16 @@ struct ContentView: View {
       .toolbar(content: trailingToolbar)
       .task {
         await store.restoreSession()
+      }
+      .sheet(isPresented: $showOutput) {
+        if let doc = store.activeDocument {
+          OutputSheetView(text: doc.output)
+        }
+      }
+      .onChange(of: store.activeDocument?.isEvaluating) { old, new in
+        if old == true, new == false, let doc = store.activeDocument, doc.output.length > 0 {
+          showOutput = true
+        }
       }
       .sheet(isPresented: $showSettings) {
         SettingsView(settings: editorSettings)
@@ -185,6 +193,15 @@ struct ContentView: View {
 
   @ToolbarContentBuilder
   private func trailingToolbar() -> some ToolbarContent {
+    ToolbarItem(placement: .primaryAction) {
+      Button {
+        showOutput = true
+      } label: {
+        Label("Output", systemImage: "terminal")
+          .labelStyle(.iconOnly)
+      }
+      .disabled(store.activeDocument?.output.length ?? 0 == 0)
+    }
     ToolbarItem(placement: .primaryAction) {
       if store.activeDocument?.isEvaluating == true {
         Button {

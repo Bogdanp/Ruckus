@@ -1,14 +1,21 @@
 import SwiftUI
 import UIKit
 
-struct OutputPanelView: View {
+struct OutputSheetView: View {
   let text: NSAttributedString
+  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
-    Divider()
-    OutputTextView(text: text)
-      .frame(maxHeight: 150)
-      .background(.background)
+    NavigationStack {
+      OutputTextView(text: text)
+        .navigationTitle("Output")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+          ToolbarItem(placement: .confirmationAction) {
+            Button("Done") { dismiss() }
+          }
+        }
+    }
   }
 }
 
@@ -22,7 +29,10 @@ private struct OutputTextView: UIViewRepresentable {
     view.textContainerInset = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
     view.textContainer.lineBreakMode = .byClipping
     view.textContainer.widthTracksTextView = false
-    view.textContainer.size = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+    view.textContainer.size = CGSize(
+      width: CGFloat.greatestFiniteMagnitude,
+      height: CGFloat.greatestFiniteMagnitude
+    )
     view.backgroundColor = .clear
     return view
   }
