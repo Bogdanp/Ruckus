@@ -25,14 +25,15 @@ class EditorDocument: Identifiable {
     self.code = code
   }
 
-  func appendOutput(_ text: String, stream: Stream) {
+  func appendOutput(_ text: String, stream: Stream, font: UIFont? = nil) {
     let color: UIColor = switch stream {
     case .stdout: .label
     case .stderr: .systemRed
     }
+    let outputFont = font ?? .monospacedSystemFont(ofSize: UIFont.smallSystemFontSize, weight: .regular)
     let attrs: [NSAttributedString.Key: Any] = [
       .foregroundColor: color,
-      .font: UIFont.monospacedSystemFont(ofSize: UIFont.smallSystemFontSize, weight: .regular)
+      .font: outputFont
     ]
     let mutable = NSMutableAttributedString(attributedString: output)
     mutable.append(NSAttributedString(string: text, attributes: attrs))

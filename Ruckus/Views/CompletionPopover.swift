@@ -8,9 +8,11 @@ final class CompletionPopover: UIView, UITableViewDataSource, UITableViewDelegat
 
   private static let rowHeight: CGFloat = 32
   private static let maxVisible = 5
-  private static let font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+  private var completionFont: UIFont
 
-  init(insertAction: @escaping (String) -> Void) {
+  init(font: UIFont = .monospacedSystemFont(ofSize: 14, weight: .regular),
+       insertAction: @escaping (String) -> Void) {
+    self.completionFont = font
     self.insertAction = insertAction
     super.init(frame: .zero)
     backgroundColor = .secondarySystemBackground
@@ -47,6 +49,10 @@ final class CompletionPopover: UIView, UITableViewDataSource, UITableViewDelegat
     fatalError()
   }
 
+  func updateFont(_ font: UIFont) {
+    completionFont = font
+  }
+
   func update(items: [String], prefix: String) {
     self.items = items
     self.prefix = prefix
@@ -54,7 +60,7 @@ final class CompletionPopover: UIView, UITableViewDataSource, UITableViewDelegat
     let visible = min(items.count, Self.maxVisible)
     let height = Self.rowHeight * CGFloat(visible)
     let widthNeeded = items.prefix(Self.maxVisible).reduce(CGFloat(200)) { maxW, item in
-      let size = (item as NSString).size(withAttributes: [.font: Self.font])
+      let size = (item as NSString).size(withAttributes: [.font: completionFont])
       return max(maxW, size.width + 40)
     }
     frame.size = CGSize(width: min(widthNeeded, 300), height: height)
@@ -78,7 +84,7 @@ final class CompletionPopover: UIView, UITableViewDataSource, UITableViewDelegat
     let item = items[indexPath.row]
     let attributed = NSMutableAttributedString(
       string: item,
-      attributes: [.font: Self.font, .foregroundColor: UIColor.label]
+      attributes: [.font: completionFont, .foregroundColor: UIColor.label]
     )
     let matchRange = NSRange(location: 0, length: (prefix as NSString).length)
     attributed.addAttribute(.foregroundColor, value: UIColor.systemBlue, range: matchRange)

@@ -4,10 +4,19 @@ import SwiftUI
 
 struct SettingsView: View {
   @Environment(\.dismiss) private var dismiss
+  var settings: EditorSettings
 
   var body: some View {
     NavigationStack {
       List {
+        Section {
+          NavigationLink {
+            EditorSettingsView(settings: settings)
+          } label: {
+            Label("Editor", systemImage: "textformat")
+              .labelStyle(SettingsLabelStyle(backgroundColor: .indigo))
+          }
+        }
         Section {
           Button(action: requestReview) {
             Label("Leave a Review", systemImage: "star.fill")

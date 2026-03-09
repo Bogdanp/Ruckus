@@ -4,6 +4,7 @@ import WidgetKit
 
 struct ContentView: View {
   @State private var store = EditorStore()
+  @State private var editorSettings = EditorSettings()
   @State private var editorUndoManager: UndoManager?
   @State private var showFileBrowser = false
   @State private var showSaveBrowser = false
@@ -37,7 +38,8 @@ struct ContentView: View {
                   }
                 ),
                 textViewUndoManager: $editorUndoManager,
-                completions: doc.completions
+                completions: doc.completions,
+                settings: editorSettings
               )
               .id(doc.id)
               .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -58,7 +60,7 @@ struct ContentView: View {
         await store.restoreSession()
       }
       .sheet(isPresented: $showSettings) {
-        SettingsView()
+        SettingsView(settings: editorSettings)
       }
       .sheet(isPresented: $showFileBrowser) {
         FileBrowserSheet { path in

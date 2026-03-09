@@ -5,6 +5,7 @@ struct CodeEditingView: UIViewRepresentable {
   @Binding var text: String
   @Binding var textViewUndoManager: UndoManager?
   var completions: [String] = []
+  var settings: EditorSettings
 
   func makeCoordinator() -> Coordinator {
     Coordinator(text: $text)
@@ -40,10 +41,11 @@ struct CodeEditingView: UIViewRepresentable {
     textView.gutterLeadingPadding = 8
     textView.gutterTrailingPadding = 5
     textView.inputAccessoryView = makeInputAccessoryView(for: textView)
-    let state = TextViewState(text: text, theme: DefaultTheme(), language: .racket)
+    let theme = EditorTheme(font: settings.font)
+    let state = TextViewState(text: text, theme: theme, language: .racket)
     textView.setState(state)
 
-    let popover = CompletionPopover { suffix in
+    let popover = CompletionPopover(font: settings.font) { suffix in
       textView.insertText(suffix)
     }
     context.coordinator.popover = popover
@@ -143,6 +145,9 @@ struct CodeEditingView: UIViewRepresentable {
       textView.text = text
     }
     context.coordinator.allCompletions = completions
+    let font = settings.font
+    textView.theme = EditorTheme(font: font)
+    context.coordinator.popover?.updateFont(font)
   }
 
   @MainActor
