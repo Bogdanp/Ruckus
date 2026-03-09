@@ -20,7 +20,7 @@
   [more {output : ExecutionOutput}])
 
 (struct state (sequence executions))
-(struct execution (id path custodian evaluation stdout stderr pending-stdout pending-stderr))
+(struct execution (id path custodian evaluation symbols-box stdout stderr pending-stdout pending-stderr))
 
 (define (make-state)
   (state
@@ -28,6 +28,7 @@
    #;executions (hasheqv)))
 
 (define (make-execution id path)
+  (define symbols-box (box null))
   (define custodian (make-custodian))
   (parameterize ([current-custodian custodian])
     (define-values (stdout-in stdout-out) (make-pipe))
@@ -37,12 +38,14 @@
                      [current-error-port stderr-out])
         (thread
          (lambda ()
-           (call-with-input-file path evaluate)))))
+           (define syms (call-with-input-file path evaluate))
+           (set-box! symbols-box syms)))))
     (execution
      #;id id
      #;path path
      #;custodian custodian
      #;evaluation evaluation
+     #;symbols-box symbols-box
      #;stdout stdout-in
      #;stderr stderr-in
      #;pending-stdout (open-output-bytes)
@@ -60,7 +63,8 @@
           (read-syntax #f in)))
       #;expected-module-sym 'ignored
       #;source-v #f))
-    (dynamic-require `',document-id 0)))
+    (namespace-require `',document-id)
+    (namespace-mapped-symbols (module->namespace `',document-id))))
 
 (define-actor (executor)
   #:state (make-state)
@@ -95,6 +99,19 @@
                      (on-executor-step id))
                    st))))))
 
+  (define/private (get-execution st id)
+    (hash-ref
+     #;ht (state-executions st)
+     #;key id
+     #;failure-result
+     (lambda ()
+       (error 'get-execution "execution ~s not found" id))))
+
+  (define (symbols st id)
+    (struct-define state st)
+    (let ([ex (get-execution st id)])
+      (values st (unbox (execution-symbols-box ex)))))
+
   (define (execute st path)
     (struct-define state st)
     (define ex (make-execution sequence path))
@@ -107,7 +124,7 @@
 
   (define (step st id)
     (struct-define state st)
-    (let ([ex (hash-ref executions id)])
+    (let ([ex (get-execution st id)])
       (struct-define execution ex)
       (define stdout-bs (get-output-bytes pending-stdout #t))
       (define stderr-bs (get-output-bytes pending-stderr #t))
@@ -117,7 +134,7 @@
 
   (define (kill st id)
     (struct-define state st)
-    (let ([ex (hash-ref executions id)])
+    (let ([ex (get-execution st id)])
       (struct-define execution ex)
       (when evaluation
         (break-thread evaluation)
@@ -145,6 +162,9 @@
 
 (define-rpc (stop-execution [_ id : UVarint])
   (kill the-executor id))
+
+(define-rpc (get-execution-symbols [_ id : UVarint] : (Listof String))
+  (map symbol->string (symbols the-executor id)))
 
 (define callout-installed? #f)
 (define-callout (on-executor-step [execution-id : UVarint]))
