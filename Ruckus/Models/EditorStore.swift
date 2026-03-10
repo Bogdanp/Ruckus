@@ -98,16 +98,16 @@ class EditorStore {
 
   func execute() async {
     guard let doc = activeDocument, !doc.isEvaluating else { return }
-    if doc.isDirty {
-      do {
-        try await save(doc)
-      } catch {
-        doc.appendOutput("Save failed: \(error.localizedDescription)", stream: .stderr)
-        return
-      }
-    }
     let path: String
     if let savedPath = doc.path {
+      if doc.isDirty {
+        do {
+          try await save(doc)
+        } catch {
+          doc.appendOutput("Save failed: \(error.localizedDescription)", stream: .stderr)
+          return
+        }
+      }
       path = savedPath
     } else {
       do {
