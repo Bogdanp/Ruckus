@@ -49,7 +49,8 @@ let project = Project(
           .dictionary([
             "CFBundleURLSchemes": .array([.string("ruckus")])
           ])
-        ])
+        ]),
+        "LSSupportsOpeningDocumentsInPlace": .boolean(true)
       ]),
       sources: ["Ruckus/**", "RuckusShared/**"],
       resources: [
