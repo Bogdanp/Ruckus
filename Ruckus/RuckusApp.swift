@@ -8,6 +8,7 @@ struct RuckusApp: App {
     WindowGroup {
       ContentView()
         .environment(EditorStore.shared)
+        .environment(EditorSettings.shared)
     }
   }
 }

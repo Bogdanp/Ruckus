@@ -1,9 +1,10 @@
 import SwiftUI
 
 struct EditorSettingsView: View {
-  @Bindable var settings: EditorSettings
+  @Environment(EditorSettings.self) private var settings
 
   var body: some View {
+    @Bindable var settings = settings
     List {
       Section("Font") {
         Stepper(

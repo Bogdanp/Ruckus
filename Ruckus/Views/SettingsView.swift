@@ -4,14 +4,14 @@ import SwiftUI
 
 struct SettingsView: View {
   @Environment(\.dismiss) private var dismiss
-  var settings: EditorSettings
+  @Environment(EditorSettings.self) private var settings
 
   var body: some View {
     NavigationStack {
       List {
         Section {
           NavigationLink {
-            EditorSettingsView(settings: settings)
+            EditorSettingsView()
           } label: {
             Label("Editor", systemImage: "textformat")
               .labelStyle(SettingsLabelStyle(backgroundColor: .indigo))

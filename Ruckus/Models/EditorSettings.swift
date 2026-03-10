@@ -1,6 +1,6 @@
 import UIKit
 
-@Observable
+@MainActor @Observable
 final class EditorSettings {
   private static let fontSizeKey = "editorFontSize"
   private static let fontNameKey = "editorFontName"
@@ -24,6 +24,8 @@ final class EditorSettings {
     return UIFont(name: fontName, size: fontSize)
       ?? .monospacedSystemFont(ofSize: fontSize, weight: .regular)
   }
+
+  static let shared = EditorSettings()
 
   init() {
     let defaults = UserDefaults.standard

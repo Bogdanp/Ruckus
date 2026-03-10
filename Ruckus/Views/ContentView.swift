@@ -4,7 +4,6 @@ import WidgetKit
 
 struct ContentView: View {
   @Environment(EditorStore.self) private var store
-  @State private var editorSettings = EditorSettings()
   @State private var editorUndoManager: UndoManager?
   @State private var activeSheet: ActiveSheet?
   @State private var saveFilename = ""
@@ -36,8 +35,7 @@ struct ContentView: View {
                   }
                 ),
                 textViewUndoManager: $editorUndoManager,
-                completions: doc.completions.isEmpty ? store.baseCompletions : doc.completions,
-                settings: editorSettings
+                completions: doc.completions.isEmpty ? store.baseCompletions : doc.completions
               )
               .id(doc.id)
               .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -61,7 +59,7 @@ struct ContentView: View {
             OutputSheetView(text: doc.output)
           }
         case .settings:
-          SettingsView(settings: editorSettings)
+          SettingsView()
         case .fileBrowser:
           FileBrowserSheet { path in
             Task {
@@ -258,4 +256,5 @@ struct ContentView: View {
 #Preview {
   ContentView()
     .environment(EditorStore.shared)
+    .environment(EditorSettings.shared)
 }

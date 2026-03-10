@@ -5,7 +5,7 @@ struct CodeEditingView: UIViewRepresentable {
   @Binding var text: String
   @Binding var textViewUndoManager: UndoManager?
   var completions: [String] = []
-  var settings: EditorSettings
+  @Environment(EditorSettings.self) private var settings
 
   func makeCoordinator() -> Coordinator {
     Coordinator(text: $text)
