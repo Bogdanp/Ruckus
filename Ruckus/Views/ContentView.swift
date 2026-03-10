@@ -62,8 +62,8 @@ struct ContentView: View {
           OutputSheetView(text: doc.output)
         }
       }
-      .onChange(of: store.activeDocument?.isEvaluating) { old, new in
-        if old == true, new == false, let doc = store.activeDocument, doc.output.length > 0 {
+      .onChange(of: store.activeDocument?.output.length) { old, new in
+        if old == 0, let new, new > 0 {
           showOutput = true
         }
       }
