@@ -62,10 +62,10 @@ struct ContentView: View {
           OutputSheetView(text: doc.output)
         }
       }
-      .onChange(of: store.activeDocument?.output.length) { old, new in
-        if old == 0, let new, new > 0 {
-          showOutput = true
-        }
+      .onChange(of: store.activeDocument?.hasUnseenOutput) { _, new in
+        guard new == true else { return }
+        store.activeDocument?.hasUnseenOutput = false
+        showOutput = true
       }
       .sheet(isPresented: $showSettings) {
         SettingsView(settings: editorSettings)

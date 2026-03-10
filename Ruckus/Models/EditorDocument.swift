@@ -13,6 +13,7 @@ class EditorDocument: Identifiable {
   var path: String?
   var code: String
   var output = NSAttributedString()
+  var hasUnseenOutput = false
   var isDirty: Bool = false
   var isEvaluating: Bool = false
   var executionId: UInt64?
@@ -35,8 +36,12 @@ class EditorDocument: Identifiable {
       .foregroundColor: color,
       .font: outputFont
     ]
+    let wasEmpty = output.length == 0
     let mutable = NSMutableAttributedString(attributedString: output)
     mutable.append(NSAttributedString(string: text, attributes: attrs))
     output = mutable
+    if wasEmpty {
+      hasUnseenOutput = true
+    }
   }
 }
