@@ -27,17 +27,10 @@ struct ContentView: View {
             )
             if let doc = store.activeDocument {
               CodeEditingView(
-                text: Binding(
-                  get: { doc.code },
-                  set: {
-                    doc.code = $0
-                    doc.isDirty = true
-                  }
-                ),
+                document: doc,
                 textViewUndoManager: $editorUndoManager,
                 completions: doc.completions.isEmpty ? store.baseCompletions : doc.completions
               )
-              .id(doc.id)
               .frame(maxWidth: .infinity, maxHeight: .infinity)
               .layoutPriority(-1)
             }

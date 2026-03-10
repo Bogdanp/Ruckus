@@ -19,6 +19,8 @@ class EditorDocument: Identifiable {
   var executionId: UInt64?
   var tempPath: String?
   var completions: [String] = []
+  var savedContentOffset: CGPoint?
+  var savedSelectedRange: NSRange?
 
   init(title: String = "Untitled", path: String? = nil, code: String = "") {
     self.title = title

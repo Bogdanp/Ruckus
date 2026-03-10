@@ -2,13 +2,13 @@ import Runestone
 import SwiftUI
 
 struct CodeEditingView: UIViewRepresentable {
-  @Binding var text: String
+  var document: EditorDocument
   @Binding var textViewUndoManager: UndoManager?
   var completions: [String] = []
   @Environment(EditorSettings.self) private var settings
 
   func makeCoordinator() -> Coordinator {
-    Coordinator(text: $text)
+    Coordinator(document: document)
   }
 
   private static let symbols: [(label: String, text: String)] = [
@@ -42,13 +42,14 @@ struct CodeEditingView: UIViewRepresentable {
     textView.gutterTrailingPadding = 5
     textView.inputAccessoryView = makeInputAccessoryView(for: textView)
     let theme = EditorTheme(font: settings.font)
-    let state = TextViewState(text: text, theme: theme, language: .racket)
+    let state = TextViewState(text: document.code, theme: theme, language: .racket)
     textView.setState(state)
 
     let popover = CompletionPopover(font: settings.font) { suffix in
       textView.insertText(suffix)
     }
     context.coordinator.popover = popover
+    context.coordinator.observeCode(of: document, in: textView)
 
     return textView
   }
@@ -137,14 +138,33 @@ struct CodeEditingView: UIViewRepresentable {
   }
 
   func updateUIView(_ textView: TextView, context: Context) {
-    if textView.text != text {
-      textView.text = text
-    }
-    context.coordinator.allCompletions = completions
+    let coordinator = context.coordinator
     let font = settings.font
+
+    if document !== coordinator.currentDocument {
+      if let prev = coordinator.currentDocument {
+        prev.savedContentOffset = textView.contentOffset
+        prev.savedSelectedRange = textView.selectedRange
+      }
+      let theme = EditorTheme(font: font)
+      let state = TextViewState(text: document.code, theme: theme, language: .racket)
+      textView.setState(state)
+      coordinator.currentDocument = document
+      coordinator.observeCode(of: document, in: textView)
+      textView.layoutIfNeeded()
+      if let range = document.savedSelectedRange {
+        textView.selectedRange = range
+      }
+      if let offset = document.savedContentOffset {
+        textView.contentOffset = offset
+      }
+      coordinator.popover?.dismiss()
+    }
+
+    coordinator.allCompletions = completions
     textView.theme = EditorTheme(font: font)
-    context.coordinator.popover?.updateFont(font)
-    if let popover = context.coordinator.popover,
+    coordinator.popover?.updateFont(font)
+    if let popover = coordinator.popover,
        popover.superview == nil,
        let window = textView.window {
       window.addSubview(popover)
@@ -156,21 +176,41 @@ struct CodeEditingView: UIViewRepresentable {
 
   @MainActor
   class Coordinator: @preconcurrency TextViewDelegate {
-    var text: Binding<String>
     var allCompletions: [String] = []
     var popover: CompletionPopover?
+    weak var currentDocument: EditorDocument?
     private var didType = false
     private let indenter = RacketIndenter()
 
     private static let wordChars = CharacterSet.alphanumerics
       .union(CharacterSet(charactersIn: "-_!?*/+<>="))
 
-    init(text: Binding<String>) {
-      self.text = text
+    init(document: EditorDocument) {
+      self.currentDocument = document
+    }
+
+    func observeCode(of document: EditorDocument, in textView: TextView) {
+      nonisolated(unsafe) let document = document
+      nonisolated(unsafe) weak let weakDocument = document
+      withObservationTracking {
+        _ = document.code
+      } onChange: { [weak self, weak textView] in
+        Task { @MainActor in
+          guard let self, let textView,
+                let document = weakDocument,
+                document === self.currentDocument else { return }
+          if textView.text != document.code {
+            textView.text = document.code
+          }
+          self.observeCode(of: document, in: textView)
+        }
+      }
     }
 
     func textViewDidChange(_ textView: TextView) {
-      text.wrappedValue = textView.text
+      guard let currentDocument else { return }
+      currentDocument.code = textView.text
+      currentDocument.isDirty = true
       didType = true
       updatePopover(for: textView)
     }
