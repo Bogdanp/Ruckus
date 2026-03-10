@@ -172,6 +172,9 @@
 (define-rpc (get-execution-symbols [_ id : UVarint] : (Listof String))
   (map symbol->string (symbols the-executor id)))
 
+(define-rpc (get-racket-base-symbols : (Listof String))
+  (map symbol->string (namespace-mapped-symbols (module->namespace 'racket/base))))
+
 (define callout-installed? #f)
 (define-callout (on-executor-step [execution-id : UVarint]))
 (define-rpc (mark-on-executor-step-installed)
