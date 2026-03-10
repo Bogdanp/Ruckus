@@ -6,22 +6,7 @@ HERE="$(basename "$(dirname "$0")")"
 RUCKUS_DIR="$(realpath "${HERE}/../Ruckus")"
 RACKET_DIR="${PBRACKET_ROOT}/racket"
 
-"$HERE/pbraco" \
-    pkg install \
-    --auto \
-    --skip-installed \
-    crypto \
-    db \
-    deta \
-    http-easy \
-    math \
-    memoize \
-    rackcheck \
-    rackunit \
-    threading
-
 rsync -ravz --exclude '.gitignore' "$RACKET_DIR/collects" "$RUCKUS_DIR/racket/"
-rsync -ravz "$HERE/../collects" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/doc" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/man" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/share" "$RUCKUS_DIR/racket/"

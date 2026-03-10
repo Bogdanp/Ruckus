@@ -15,7 +15,8 @@ Racket for iOS. The frontend is mostly vibe coded.
 
     $ cp xcconfigs/Local.xcconfig.example xcconfigs/Local.xcconfig
     # Edit xcconfigs/Local.xcconfig with your Apple Development Team ID
-    $ raco pkg install --name ruckus-core/
+    $ ./bin/pbraco pkg install --name ruckus-core/
+    $ ./bin/pbraco pkg install --copy ruckus-openssl/
     $ tuist install
     $ ./bin/prepare-distribution
 

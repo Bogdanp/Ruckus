@@ -7,4 +7,14 @@
     ["noise-serde-lib" #:version "0.11"]
     "sandbox-lib"
     "struct-define"
-    "threading-lib"))
+    "threading-lib"
+
+    ;; Unused, but distributed:
+    "crypto"
+    "deta"
+    "http-easy"
+    "math"
+    "memoize"
+    "rackcheck"
+    "rackunit"
+    "threading"))
