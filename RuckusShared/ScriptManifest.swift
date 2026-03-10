@@ -9,10 +9,9 @@ enum ScriptManifest {
   }
 
   static func update(rootPath: String, scripts: [String]) {
-    let store = defaults
-    store?.set(rootPath, forKey: rootPathKey)
-    store?.set(scripts, forKey: scriptsKey)
-    store?.synchronize()
+    guard let store = defaults else { return }
+    store.set(rootPath, forKey: rootPathKey)
+    store.set(scripts, forKey: scriptsKey)
   }
 
   static func remove(script: String) {
@@ -20,7 +19,6 @@ enum ScriptManifest {
     var current = scripts()
     current.removeAll { $0 == script }
     store.set(current, forKey: scriptsKey)
-    store.synchronize()
   }
 
   static func scripts() -> [String] {

@@ -15,7 +15,6 @@ enum ScriptOutputCache {
     let store = defaults
     store?.set(output, forKey: keyPrefix + scriptId)
     store?.set(Date().timeIntervalSince1970, forKey: keyPrefix + scriptId + timestampSuffix)
-    store?.synchronize()
   }
 
   static func load(for scriptId: String) -> (output: String, date: Date)? {
