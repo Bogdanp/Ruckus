@@ -3,18 +3,6 @@ import UIKit
 import WidgetKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-  private static var executions: [UInt64: Weak<EditorDocument>] = [:]
-  private static var outputBuffers: [UInt64: (stdout: OutputBuffer, stderr: OutputBuffer)] = [:]
-
-  static func register(_ doc: EditorDocument, executionId: UInt64) {
-    executions[executionId] = Weak(value: doc)
-    outputBuffers[executionId] = (stdout: OutputBuffer(), stderr: OutputBuffer())
-  }
-
-  static func unregister(executionId: UInt64) {
-    executions.removeValue(forKey: executionId)
-    outputBuffers.removeValue(forKey: executionId)
-  }
 
   func application(
     _ application: UIApplication,
@@ -36,7 +24,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
   }
 
   private static func saveWidgetCache(executionId: UInt64, doc: EditorDocument) async {
-    let stdout = outputBuffers[executionId]?.stdout.decoded ?? ""
+    let stdout = ExecutionRegistry.shared.decodedStdout(for: executionId)
     guard let scriptId = await EditorStore.shared.relativePath(for: doc) else {
       Logger.backend.debug("saveWidgetCache: skipped — no relative path for execution \(executionId)")
       return
@@ -72,7 +60,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
   }
 
   static func step(_ executionId: UInt64) {
-    guard let doc = executions[executionId]?.value else { return }
+    let registry = ExecutionRegistry.shared
+    guard let doc = registry.document(for: executionId) else { return }
     Task {
       do {
         let step = try await Backend.shared.stepExecution(executionId)
@@ -86,37 +75,39 @@ class AppDelegate: NSObject, UIApplicationDelegate {
           output = value
           isDone = false
         }
-        let stdoutText = outputBuffers[executionId]?.stdout.decode(output.stdout) ?? ""
-        if !stdoutText.isEmpty {
-          doc.appendOutput(stdoutText, stream: .stdout)
-        }
-        let stderrText = outputBuffers[executionId]?.stderr.decode(output.stderr) ?? ""
-        if !stderrText.isEmpty {
-          doc.appendOutput(stderrText, stream: .stderr)
+        registry.withBuffers(for: executionId) { stdout, stderr in
+          let stdoutText = stdout.decode(output.stdout)
+          if !stdoutText.isEmpty {
+            doc.appendOutput(stdoutText, stream: .stdout)
+          }
+          let stderrText = stderr.decode(output.stderr)
+          if !stderrText.isEmpty {
+            doc.appendOutput(stderrText, stream: .stderr)
+          }
+          if isDone {
+            let trailingStdout = stdout.flush()
+            if !trailingStdout.isEmpty {
+              doc.appendOutput(trailingStdout, stream: .stdout)
+            }
+            let trailingStderr = stderr.flush()
+            if !trailingStderr.isEmpty {
+              doc.appendOutput(trailingStderr, stream: .stderr)
+            }
+          }
         }
         if isDone {
-          let trailingStdout = outputBuffers[executionId]?.stdout.flush() ?? ""
-          if !trailingStdout.isEmpty {
-            doc.appendOutput(trailingStdout, stream: .stdout)
-          }
-          let trailingStderr = outputBuffers[executionId]?.stderr.flush() ?? ""
-          if !trailingStderr.isEmpty {
-            doc.appendOutput(trailingStderr, stream: .stderr)
-          }
           doc.isEvaluating = false
           doc.executionId = nil
           await saveWidgetCache(executionId: executionId, doc: doc)
           fetchCompletions(executionId: executionId, doc: doc)
-          executions.removeValue(forKey: executionId)
-          outputBuffers.removeValue(forKey: executionId)
+          registry.unregister(executionId: executionId)
           cleanupTempFile(doc)
         }
       } catch {
         doc.appendOutput(error.localizedDescription + "\n", stream: .stderr)
         doc.isEvaluating = false
         doc.executionId = nil
-        executions.removeValue(forKey: executionId)
-        outputBuffers.removeValue(forKey: executionId)
+        registry.unregister(executionId: executionId)
         cleanupTempFile(doc)
       }
     }
