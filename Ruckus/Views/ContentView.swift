@@ -6,13 +6,10 @@ struct ContentView: View {
   @Environment(EditorStore.self) private var store
   @State private var editorSettings = EditorSettings()
   @State private var editorUndoManager: UndoManager?
-  @State private var showFileBrowser = false
-  @State private var showSaveBrowser = false
+  @State private var activeSheet: ActiveSheet?
   @State private var saveFilename = ""
   @State private var shareFileURL: URL?
   @State private var shareError: String?
-  @State private var showSettings = false
-  @State private var showOutput = false
 
   var body: some View {
     NavigationStack {
@@ -57,43 +54,43 @@ struct ContentView: View {
       .task {
         await store.restoreSession()
       }
-      .sheet(isPresented: $showOutput) {
-        if let doc = store.activeDocument {
-          OutputSheetView(text: doc.output)
+      .sheet(item: $activeSheet) { sheet in
+        switch sheet {
+        case .output:
+          if let doc = store.activeDocument {
+            OutputSheetView(text: doc.output)
+          }
+        case .settings:
+          SettingsView(settings: editorSettings)
+        case .fileBrowser:
+          FileBrowserSheet { path in
+            Task {
+              do {
+                try await store.open(path: path)
+              } catch {
+                Logger.editor.error("\(#function): failed to open file at \(path): \(error)")
+              }
+            }
+          }
+        case .saveBrowser:
+          SaveBrowserSheet(initialFilename: saveFilename) { directory, filename in
+            guard let doc = store.activeDocument else { return }
+            doc.title = filename
+            doc.path = (directory as NSString).appendingPathComponent(filename)
+            Task {
+              do {
+                try await store.save(doc)
+              } catch {
+                doc.appendOutput("Save failed: \(error.localizedDescription)", stream: .stderr)
+              }
+            }
+          }
         }
       }
       .onChange(of: store.activeDocument?.hasUnseenOutput) { _, new in
         guard new == true else { return }
         store.activeDocument?.hasUnseenOutput = false
-        showOutput = true
-      }
-      .sheet(isPresented: $showSettings) {
-        SettingsView(settings: editorSettings)
-      }
-      .sheet(isPresented: $showFileBrowser) {
-        FileBrowserSheet { path in
-          Task {
-            do {
-              try await store.open(path: path)
-            } catch {
-              Logger.editor.error("\(#function): failed to open file at \(path): \(error)")
-            }
-          }
-        }
-      }
-      .sheet(isPresented: $showSaveBrowser) {
-        SaveBrowserSheet(initialFilename: saveFilename) { directory, filename in
-          guard let doc = store.activeDocument else { return }
-          doc.title = filename
-          doc.path = (directory as NSString).appendingPathComponent(filename)
-          Task {
-            do {
-              try await store.save(doc)
-            } catch {
-              doc.appendOutput("Save failed: \(error.localizedDescription)", stream: .stderr)
-            }
-          }
-        }
+        activeSheet = .output
       }
       .sheet(item: $shareFileURL) { url in
         ActivitySheet(items: [url])
@@ -142,7 +139,7 @@ struct ContentView: View {
       Label("New", systemImage: "doc")
     }
     Button {
-      showFileBrowser = true
+      activeSheet = .fileBrowser
     } label: {
       Label("Open...", systemImage: "folder")
     }
@@ -184,7 +181,7 @@ struct ContentView: View {
   private func leadingToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .topBarLeading) {
       Button {
-        showSettings = true
+        activeSheet = .settings
       } label: {
         Image(systemName: "gearshape")
       }
@@ -195,7 +192,7 @@ struct ContentView: View {
   private func trailingToolbar() -> some ToolbarContent {
     ToolbarItem(placement: .primaryAction) {
       Button {
-        showOutput = true
+        activeSheet = .output
       } label: {
         Label("Output", systemImage: "terminal")
           .labelStyle(.iconOnly)
@@ -240,7 +237,7 @@ struct ContentView: View {
   private func saveAs() {
     guard let doc = store.activeDocument else { return }
     saveFilename = doc.title == "Untitled" ? "" : doc.title
-    showSaveBrowser = true
+    activeSheet = .saveBrowser
   }
 
   private func share() {
