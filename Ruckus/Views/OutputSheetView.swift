@@ -41,7 +41,7 @@ private struct OutputTextView: UIViewRepresentable {
       textView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
       textView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
       textView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-      textView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+      textView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor)
     ])
 
     context.coordinator.textView = textView
