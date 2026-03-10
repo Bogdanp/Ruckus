@@ -36,7 +36,7 @@ struct ContentView: View {
                   }
                 ),
                 textViewUndoManager: $editorUndoManager,
-                completions: doc.completions,
+                completions: doc.completions.isEmpty ? store.baseCompletions : doc.completions,
                 settings: editorSettings
               )
               .id(doc.id)

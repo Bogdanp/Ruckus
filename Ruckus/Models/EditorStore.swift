@@ -9,6 +9,7 @@ class EditorStore {
   private static let activeDocumentPathKey = "activeDocumentPath"
 
   private(set) var isLoading = true
+  private(set) var baseCompletions: [String] = []
   private(set) var documents: [EditorDocument] = [] {
     didSet {
       if let id = activeDocumentID, !documents.contains(where: { $0.id == id }) {
@@ -219,6 +220,15 @@ class EditorStore {
       newDocument()
     }
     await refreshScriptManifest()
+    await fetchBaseCompletions()
+  }
+
+  private func fetchBaseCompletions() async {
+    do {
+      baseCompletions = try await Backend.shared.getRacketBaseSymbols().sorted()
+    } catch {
+      Logger.backend.warning("\(#function): failed to fetch base completions: \(error)")
+    }
   }
 
   func cleanupTempFile(_ doc: EditorDocument) {
