@@ -1,5 +1,7 @@
 import ProjectDescription
 
+let iOS = DeploymentTargets.iOS("26.0")
+
 let project = Project(
   name: "Ruckus",
   settings: .settings(
@@ -19,7 +21,7 @@ let project = Project(
       destinations: [.iPhone, .iPad],
       product: .app,
       bundleId: "io.defn.Ruckus",
-      deploymentTargets: .iOS("26.0"),
+      deploymentTargets: iOS,
       infoPlist: .extendingDefault(with: [
         "CFBundleDocumentTypes": .array([
           .dictionary([
@@ -94,7 +96,7 @@ let project = Project(
       destinations: [.iPhone, .iPad],
       product: .appExtension,
       bundleId: "io.defn.Ruckus.Widgets",
-      deploymentTargets: .iOS("26.0"),
+      deploymentTargets: iOS,
       infoPlist: .extendingDefault(with: [
         "NSExtension": .dictionary([
           "NSExtensionPointIdentifier": .string("com.apple.widgetkit-extension")
@@ -129,11 +131,14 @@ let project = Project(
       destinations: [.iPhone, .iPad],
       product: .staticLibrary,
       bundleId: "io.defn.TreeSitterRacket",
+      deploymentTargets: iOS,
       sources: ["vendor/tree-sitter-racket/src/**"],
       headers: .headers(public: ["vendor/tree-sitter-racket/bindings/swift/**"]),
       settings: .settings(base: [
         "HEADER_SEARCH_PATHS": "$(SRCROOT)/vendor/tree-sitter-racket/src",
-        "MODULEMAP_FILE": "$(SRCROOT)/vendor/tree-sitter-racket.modulemap"
+        "MODULEMAP_FILE": "$(SRCROOT)/vendor/tree-sitter-racket.modulemap",
+        "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+        "STRING_CATALOG_GENERATE_SYMBOLS": "YES"
       ])
     )
   ],
