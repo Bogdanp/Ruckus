@@ -131,7 +131,7 @@ static bool scan(TSLexer *lexer, const bool *valid_symbols) {
     }
 }
 
-void *tree_sitter_racket_external_scanner_create() {
+void *tree_sitter_racket_external_scanner_create(void) {
     return NULL;
 }
 
