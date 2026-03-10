@@ -3,19 +3,10 @@ import UIKit
 
 struct OutputSheetView: View {
   let text: NSAttributedString
-  @Environment(\.dismiss) private var dismiss
 
   var body: some View {
-    NavigationStack {
+    SheetNavigation(title: "Output") {
       OutputTextView(text: text)
-        .presentationDragIndicator(.visible)
-        .navigationTitle("Output")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-          ToolbarItem(placement: .confirmationAction) {
-            Button("Done") { dismiss() }
-          }
-        }
     }
   }
 }

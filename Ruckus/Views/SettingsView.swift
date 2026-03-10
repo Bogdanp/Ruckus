@@ -3,11 +3,10 @@ import StoreKit
 import SwiftUI
 
 struct SettingsView: View {
-  @Environment(\.dismiss) private var dismiss
   @Environment(EditorSettings.self) private var settings
 
   var body: some View {
-    NavigationStack {
+    SheetNavigation(title: "Settings", titleDisplayMode: .large) {
       List {
         Section {
           NavigationLink {
@@ -42,14 +41,6 @@ struct SettingsView: View {
             Label("About", systemImage: "info")
               .labelStyle(SettingsLabelStyle(backgroundColor: .blue))
           }
-        }
-      }
-      .presentationDragIndicator(.visible)
-      .navigationTitle("Settings")
-      .navigationBarTitleDisplayMode(.large)
-      .toolbar {
-        ToolbarItem(placement: .confirmationAction) {
-          Button("Done") { dismiss() }
         }
       }
       .safeAreaInset(edge: .bottom) {

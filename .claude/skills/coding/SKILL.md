@@ -14,3 +14,8 @@ alwaysApply: true
 - Use lower case messages with no punctuation in Logger calls.
 - Prefix log messages with `\(#function):` so the call site is visible.
 - Example: `Logger.backend.error("\(#function): failed to mark executor step installed: \(error)")`
+
+## Post-Change Verification
+
+- After modifying Swift files, always run `swiftlint lint --quiet` on the
+  changed files before considering the task complete.
