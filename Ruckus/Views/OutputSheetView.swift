@@ -8,6 +8,7 @@ struct OutputSheetView: View {
   var body: some View {
     NavigationStack {
       OutputTextView(text: text)
+        .presentationDragIndicator(.visible)
         .navigationTitle("Output")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
