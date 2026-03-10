@@ -16,7 +16,7 @@ let project = Project(
   targets: [
     .target(
       name: "Ruckus",
-      destinations: .iOS,
+      destinations: [.iPhone, .iPad],
       product: .app,
       bundleId: "io.defn.Ruckus",
       deploymentTargets: .iOS("26.0"),
@@ -90,7 +90,7 @@ let project = Project(
     ),
     .target(
       name: "RuckusWidgets",
-      destinations: .iOS,
+      destinations: [.iPhone, .iPad],
       product: .appExtension,
       bundleId: "io.defn.Ruckus.Widgets",
       deploymentTargets: .iOS("26.0"),
@@ -114,7 +114,7 @@ let project = Project(
     ),
     .target(
       name: "RuckusTests",
-      destinations: .iOS,
+      destinations: [.iPhone, .iPad],
       product: .unitTests,
       bundleId: "io.defn.RuckusTests",
       sources: ["RuckusTests/**"],
@@ -125,7 +125,7 @@ let project = Project(
     ),
     .target(
       name: "TreeSitterRacket",
-      destinations: .iOS,
+      destinations: [.iPhone, .iPad],
       product: .staticLibrary,
       bundleId: "io.defn.TreeSitterRacket",
       sources: ["vendor/tree-sitter-racket/src/**"],
