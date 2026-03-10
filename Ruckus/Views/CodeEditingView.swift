@@ -50,10 +50,6 @@ struct CodeEditingView: UIViewRepresentable {
     }
     context.coordinator.popover = popover
 
-    DispatchQueue.main.async {
-      textView.window?.addSubview(popover)
-      textViewUndoManager = textView.undoManager
-    }
     return textView
   }
 
@@ -148,6 +144,14 @@ struct CodeEditingView: UIViewRepresentable {
     let font = settings.font
     textView.theme = EditorTheme(font: font)
     context.coordinator.popover?.updateFont(font)
+    if let popover = context.coordinator.popover,
+       popover.superview == nil,
+       let window = textView.window {
+      window.addSubview(popover)
+    }
+    if textViewUndoManager !== textView.undoManager {
+      textViewUndoManager = textView.undoManager
+    }
   }
 
   @MainActor
