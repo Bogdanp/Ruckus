@@ -17,19 +17,20 @@ struct ScriptOutputWidgetView: View {
           .font(.system(.caption2, design: .monospaced))
           .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       }
-      .padding()
+      .foregroundStyle(.white)
     } else {
       Text("Select a script")
         .font(.caption)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(.white.opacity(0.7))
     }
   }
 
   private func refreshLink(for scriptId: String) -> some View {
     let encoded = scriptId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
     return Link(destination: URL(string: "ruckus://refresh?script=\(encoded)")!) {
-      Image(systemName: "arrow.clockwise")
-        .font(.caption)
+      Image(systemName: "play.fill")
+        .resizable()
+        .frame(width: 16, height: 16)
     }
   }
 }

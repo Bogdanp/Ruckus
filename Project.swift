@@ -53,6 +53,7 @@ let project = Project(
       ]),
       sources: ["Ruckus/**", "RuckusShared/**"],
       resources: [
+        "Ruckus/Assets.xcassets",
         .folderReference(path: "Ruckus/racket"),
         .folderReference(path: "Ruckus/res"),
         .glob(pattern: "vendor/tree-sitter-racket/queries/highlights.scm"),
@@ -99,6 +100,9 @@ let project = Project(
         ])
       ]),
       sources: ["RuckusWidgets/**", "RuckusShared/**"],
+      resources: [
+        "RuckusWidgets/Assets.xcassets"
+      ],
       entitlements: .file(path: "RuckusWidgets/RuckusWidgets.entitlements"),
       dependencies: [],
       settings: .settings(

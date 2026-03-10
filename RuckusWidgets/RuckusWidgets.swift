@@ -12,7 +12,7 @@ struct RuckusWidgets: Widget {
       provider: ScriptWidgetProvider()
     ) { entry in
       ScriptOutputWidgetView(entry: entry)
-        .containerBackground(.fill.tertiary, for: .widget)
+        .containerBackground(Color("WidgetBackground"), for: .widget)
     }
     .configurationDisplayName("Script Output")
     .description("Displays the output of a Racket script.")
