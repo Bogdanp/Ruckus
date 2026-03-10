@@ -1,5 +1,6 @@
 import Foundation
 
-extension URL: @retroactive Identifiable {
-  public var id: String { absoluteString }
+struct IdentifiableURL: Identifiable {
+  let url: URL
+  var id: String { url.absoluteString }
 }

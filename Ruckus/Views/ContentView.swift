@@ -8,7 +8,7 @@ struct ContentView: View {
   @State private var editorUndoManager: UndoManager?
   @State private var activeSheet: ActiveSheet?
   @State private var saveFilename = ""
-  @State private var shareFileURL: URL?
+  @State private var shareFileURL: IdentifiableURL?
   @State private var shareError: String?
 
   var body: some View {
@@ -92,10 +92,10 @@ struct ContentView: View {
         store.activeDocument?.hasUnseenOutput = false
         activeSheet = .output
       }
-      .sheet(item: $shareFileURL) { url in
-        ActivitySheet(items: [url])
+      .sheet(item: $shareFileURL) { item in
+        ActivitySheet(items: [item.url])
       }
-      .onChange(of: shareFileURL) { oldURL, _ in
+      .onChange(of: shareFileURL?.url) { oldURL, _ in
         if let oldURL {
           try? FileManager.default.removeItem(at: oldURL.deletingLastPathComponent())
         }
@@ -248,7 +248,7 @@ struct ContentView: View {
       try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
       let fileURL = tempDir.appendingPathComponent(filename)
       try doc.code.write(to: fileURL, atomically: true, encoding: .utf8)
-      shareFileURL = fileURL
+      shareFileURL = IdentifiableURL(url: fileURL)
     } catch {
       shareError = error.localizedDescription
     }
