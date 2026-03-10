@@ -10,7 +10,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
   ) -> Bool {
     _ = Backend.shared.installCallback(onExecutorStep: { executionId in
       Task { @MainActor in
-        AppDelegate.step(executionId)
+        ExecutionStepper.shared.notify(executionId: executionId)
       }
     })
     Task {
@@ -59,50 +59,39 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
   }
 
-  static func step(_ executionId: UInt64) {
+  static func runExecution(_ executionId: UInt64) {
     let registry = ExecutionRegistry.shared
     guard let doc = registry.document(for: executionId) else { return }
     Task {
       do {
-        let step = try await Backend.shared.stepExecution(executionId)
-        let output: ExecutionOutput
-        let isDone: Bool
-        switch step {
-        case .done(let value):
-          output = value
-          isDone = true
-        case .more(let value):
-          output = value
-          isDone = false
-        }
-        registry.withBuffers(for: executionId) { stdout, stderr in
-          let stdoutText = stdout.decode(output.stdout)
-          if !stdoutText.isEmpty {
-            doc.appendOutput(stdoutText, stream: .stdout)
-          }
-          let stderrText = stderr.decode(output.stderr)
-          if !stderrText.isEmpty {
-            doc.appendOutput(stderrText, stream: .stderr)
-          }
-          if isDone {
-            let trailingStdout = stdout.flush()
-            if !trailingStdout.isEmpty {
-              doc.appendOutput(trailingStdout, stream: .stdout)
+        for try await step in ExecutionStepper.shared.steps(for: executionId) {
+          registry.withBuffers(for: executionId) { stdout, stderr in
+            let stdoutText = stdout.decode(step.output.stdout)
+            if !stdoutText.isEmpty {
+              doc.appendOutput(stdoutText, stream: .stdout)
             }
-            let trailingStderr = stderr.flush()
-            if !trailingStderr.isEmpty {
-              doc.appendOutput(trailingStderr, stream: .stderr)
+            let stderrText = stderr.decode(step.output.stderr)
+            if !stderrText.isEmpty {
+              doc.appendOutput(stderrText, stream: .stderr)
+            }
+            if step.isDone {
+              let trailingStdout = stdout.flush()
+              if !trailingStdout.isEmpty {
+                doc.appendOutput(trailingStdout, stream: .stdout)
+              }
+              let trailingStderr = stderr.flush()
+              if !trailingStderr.isEmpty {
+                doc.appendOutput(trailingStderr, stream: .stderr)
+              }
             }
           }
         }
-        if isDone {
-          doc.isEvaluating = false
-          doc.executionId = nil
-          await saveWidgetCache(executionId: executionId, doc: doc)
-          fetchCompletions(executionId: executionId, doc: doc)
-          registry.unregister(executionId: executionId)
-          cleanupTempFile(doc)
-        }
+        doc.isEvaluating = false
+        doc.executionId = nil
+        await saveWidgetCache(executionId: executionId, doc: doc)
+        fetchCompletions(executionId: executionId, doc: doc)
+        registry.unregister(executionId: executionId)
+        cleanupTempFile(doc)
       } catch {
         doc.appendOutput(error.localizedDescription + "\n", stream: .stderr)
         doc.isEvaluating = false

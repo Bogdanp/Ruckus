@@ -127,7 +127,7 @@ class EditorStore {
       let id = try await Backend.shared.executeScript(atPath: path)
       doc.executionId = id
       ExecutionRegistry.shared.register(doc, executionId: id)
-      AppDelegate.step(id)
+      AppDelegate.runExecution(id)
     } catch {
       doc.appendOutput(error.localizedDescription, stream: .stderr)
       doc.isEvaluating = false
