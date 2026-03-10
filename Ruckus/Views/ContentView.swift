@@ -4,11 +4,10 @@ import WidgetKit
 
 struct ContentView: View {
   @Environment(EditorStore.self) private var store
+  @Environment(\.saveAction) private var saveAction
+  @Environment(\.shareAction) private var shareAction
   @State private var editorUndoManager: UndoManager?
   @State private var activeSheet: ActiveSheet?
-  @State private var saveFilename = ""
-  @State private var shareFileURL: IdentifiableURL?
-  @State private var shareError: String?
 
   var body: some View {
     NavigationStack {
@@ -63,41 +62,12 @@ struct ContentView: View {
               }
             }
           }
-        case .saveBrowser:
-          SaveBrowserSheet(initialFilename: saveFilename) { directory, filename in
-            guard let doc = store.activeDocument else { return }
-            doc.title = filename
-            doc.path = (directory as NSString).appendingPathComponent(filename)
-            Task {
-              do {
-                try await store.save(doc)
-              } catch {
-                doc.appendOutput("Save failed: \(error.localizedDescription)", stream: .stderr)
-              }
-            }
-          }
         }
       }
       .onChange(of: store.activeDocument?.hasUnseenOutput) { _, new in
         guard new == true else { return }
         store.activeDocument?.hasUnseenOutput = false
         activeSheet = .output
-      }
-      .sheet(item: $shareFileURL) { item in
-        ActivitySheet(items: [item.url])
-      }
-      .onChange(of: shareFileURL?.url) { oldURL, _ in
-        if let oldURL {
-          try? FileManager.default.removeItem(at: oldURL.deletingLastPathComponent())
-        }
-      }
-      .alert("Share Failed", isPresented: Binding(
-        get: { shareError != nil },
-        set: { if !$0 { shareError = nil } }
-      )) {
-        Button("OK", role: .cancel) {}
-      } message: {
-        Text(shareError ?? "")
       }
       .onOpenURL { url in
         if url.scheme == "ruckus", url.host == "refresh" {
@@ -135,15 +105,15 @@ struct ContentView: View {
       Label("Open...", systemImage: "folder")
     }
     Divider()
-    Button(action: save) {
+    Button(action: saveAction.save) {
       Label("Save", systemImage: "doc.badge.arrow.up")
     }
     .disabled(store.activeDocument == nil)
-    Button(action: saveAs) {
+    Button(action: saveAction.saveAs) {
       Label("Save As...", systemImage: "doc.badge.plus")
     }
     .disabled(store.activeDocument == nil)
-    Button(action: share) {
+    Button(action: shareAction.share) {
       Label("Share...", systemImage: "square.and.arrow.up")
     }
     .disabled(store.activeDocument == nil)
@@ -207,41 +177,6 @@ struct ContentView: View {
         }
         .disabled(store.activeDocument == nil || store.activeDocument?.isEvaluating == true)
       }
-    }
-  }
-
-  private func save() {
-    guard let doc = store.activeDocument else { return }
-    if doc.path == nil {
-      saveAs()
-    } else {
-      Task {
-        do {
-          try await store.save(doc)
-        } catch {
-          doc.appendOutput("Save failed: \(error.localizedDescription)", stream: .stderr)
-        }
-      }
-    }
-  }
-
-  private func saveAs() {
-    guard let doc = store.activeDocument else { return }
-    saveFilename = doc.title == "Untitled" ? "" : doc.title
-    activeSheet = .saveBrowser
-  }
-
-  private func share() {
-    guard let doc = store.activeDocument else { return }
-    let filename = doc.title.hasSuffix(".rkt") ? doc.title : doc.title + ".rkt"
-    let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-    do {
-      try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-      let fileURL = tempDir.appendingPathComponent(filename)
-      try doc.code.write(to: fileURL, atomically: true, encoding: .utf8)
-      shareFileURL = IdentifiableURL(url: fileURL)
-    } catch {
-      shareError = error.localizedDescription
     }
   }
 }

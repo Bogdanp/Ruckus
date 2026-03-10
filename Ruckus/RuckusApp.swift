@@ -7,6 +7,8 @@ struct RuckusApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
+        .modifier(SaveAction())
+        .modifier(ShareAction())
         .environment(EditorStore.shared)
         .environment(EditorSettings.shared)
     }
