@@ -36,6 +36,7 @@ private struct OutputTextView: UIViewRepresentable {
     textView.translatesAutoresizingMaskIntoConstraints = false
 
     let scrollView = UIScrollView()
+    scrollView.delegate = context.coordinator
     scrollView.addSubview(textView)
     NSLayoutConstraint.activate([
       textView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
@@ -58,11 +59,46 @@ private struct OutputTextView: UIViewRepresentable {
     ))
     textView.frame.size = size
     scrollView.contentSize = size
+
+    if context.coordinator.isAnchoredToBottom(scrollView) {
+      let bottomOffset = max(0, scrollView.contentSize.height - scrollView.bounds.height
+        + scrollView.adjustedContentInset.bottom)
+      scrollView.contentOffset.y = bottomOffset
+    }
   }
 
   func makeCoordinator() -> Coordinator { Coordinator() }
 
-  final class Coordinator {
+  final class Coordinator: NSObject, UIScrollViewDelegate {
     weak var textView: UITextView?
+    private var userHasScrolled = false
+
+    func isAnchoredToBottom(_ scrollView: UIScrollView) -> Bool {
+      if !userHasScrolled { return true }
+      let bottomEdge = scrollView.contentSize.height - scrollView.bounds.height
+        + scrollView.adjustedContentInset.bottom
+      let threshold: CGFloat = 40
+      return scrollView.contentOffset.y >= bottomEdge - threshold
+    }
+
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+      userHasScrolled = true
+    }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+      resetAnchorIfAtBottom(scrollView)
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+      if !decelerate { resetAnchorIfAtBottom(scrollView) }
+    }
+
+    private func resetAnchorIfAtBottom(_ scrollView: UIScrollView) {
+      let bottomEdge = scrollView.contentSize.height - scrollView.bounds.height
+        + scrollView.adjustedContentInset.bottom
+      if scrollView.contentOffset.y >= bottomEdge - 40 {
+        userHasScrolled = false
+      }
+    }
   }
 }
