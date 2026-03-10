@@ -17,6 +17,8 @@ struct AboutView: View {
             Text("Version \(appVersion)")
               .font(.subheadline)
               .foregroundStyle(.secondary)
+            Link("defn.io", destination: URL(string: "https://defn.io")!)
+              .font(.subheadline)
           }
         }
         .padding(.vertical, 4)
