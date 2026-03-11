@@ -52,7 +52,8 @@ let project = Project(
             "CFBundleURLSchemes": .array([.string("ruckus")])
           ])
         ]),
-        "LSSupportsOpeningDocumentsInPlace": .boolean(true)
+        "LSSupportsOpeningDocumentsInPlace": .boolean(true),
+        "ITSAppUsesNonExemptEncryption": .boolean(false)
       ]),
       sources: ["Ruckus/**", "RuckusShared/**"],
       resources: [
