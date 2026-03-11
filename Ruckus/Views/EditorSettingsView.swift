@@ -6,6 +6,14 @@ struct EditorSettingsView: View {
   var body: some View {
     @Bindable var settings = settings
     List {
+      Section("Theme") {
+        Picker("Color Theme", selection: $settings.themeName) {
+          ForEach(ColorThemeName.allCases) { theme in
+            Text(theme.rawValue).tag(theme)
+          }
+        }
+      }
+
       Section("Font") {
         Stepper(
           "Size: \(Int(settings.fontSize))",
@@ -21,14 +29,14 @@ struct EditorSettingsView: View {
         }
       }
 
-      Section {
-        Text("The quick brown fox\njumps over the lazy dog")
-          .font(Font(settings.font))
-          .frame(maxWidth: .infinity, alignment: .leading)
-      } header: {
-        Text("Preview")
+      Section("Preview") {
+        ThemePreviewView(font: settings.font, palette: settings.colorPalette)
+          .frame(height: 280)
+          .clipShape(RoundedRectangle(cornerRadius: 8))
+          .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
       }
     }
     .navigationTitle("Editor")
+    .navigationBarTitleDisplayMode(.inline)
   }
 }

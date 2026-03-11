@@ -43,14 +43,18 @@ struct CodeEditingView: UIViewRepresentable {
     textView.gutterTrailingPadding = 5
     textView.isFindInteractionEnabled = true
     textView.inputAccessoryView = makeInputAccessoryView(for: textView)
-    let theme = EditorTheme(font: settings.font)
+    let theme = EditorTheme(font: settings.font, palette: settings.colorPalette)
     let state = TextViewState(text: document.code, theme: theme, language: .racket)
     textView.setState(state)
+    textView.backgroundColor = theme.backgroundColor
+    applyInsertionPointColor(to: textView)
 
     let popover = CompletionPopover(font: settings.font) { suffix in
       textView.insertText(suffix)
     }
     context.coordinator.popover = popover
+    context.coordinator.currentFont = settings.font
+    context.coordinator.currentThemeName = settings.themeName
     context.coordinator.observeCode(of: document, in: textView)
 
     return textView
@@ -75,7 +79,7 @@ struct CodeEditingView: UIViewRepresentable {
       let isKeyword = snippet.label.count > 1
       var config = UIButton.Configuration.plain()
       config.title = snippet.label
-      config.baseForegroundColor = .label
+      config.baseForegroundColor = settings.colorPalette?.textColor ?? .label
       config.titleTextAttributesTransformer = .init { attrs in
         var attrs = attrs
         attrs.font = .monospacedSystemFont(ofSize: isKeyword ? 15 : 17, weight: .medium)
@@ -86,7 +90,7 @@ struct CodeEditingView: UIViewRepresentable {
         bottom: 6, trailing: isKeyword ? 10 : 12
       )
       config.background.cornerRadius = 6
-      config.background.backgroundColor = .systemBackground
+      config.background.backgroundColor = settings.colorPalette?.gutterBackground ?? .systemBackground
       let button = UIButton(configuration: config)
       button.layer.shadowColor = UIColor.black.cgColor
       button.layer.shadowOpacity = 0.15
@@ -114,6 +118,9 @@ struct CodeEditingView: UIViewRepresentable {
       inputViewStyle: .keyboard
     )
     bar.allowsSelfSizing = true
+    if let palette = settings.colorPalette {
+      bar.backgroundColor = palette.backgroundColor
+    }
 
     let symbolsRow = makeSnippetRow(snippets: Self.symbols, for: textView)
     let keywordsRow = makeSnippetRow(snippets: Self.keywords, for: textView)
@@ -134,6 +141,13 @@ struct CodeEditingView: UIViewRepresentable {
     return bar
   }
 
+  private func applyInsertionPointColor(to textView: TextView) {
+    let color = settings.colorPalette?.textColor ?? .label
+    textView.insertionPointColor = color
+    textView.selectionBarColor = color
+    textView.selectionHighlightColor = color.withAlphaComponent(0.2)
+  }
+
   static func dismantleUIView(_ textView: TextView, coordinator: Coordinator) {
     coordinator.popover?.removeFromSuperview()
     coordinator.popover = nil
@@ -143,14 +157,18 @@ struct CodeEditingView: UIViewRepresentable {
     let coordinator = context.coordinator
     let font = settings.font
 
+    let themeChanged = font != coordinator.currentFont
+      || settings.themeName != coordinator.currentThemeName
+
     if document !== coordinator.currentDocument {
       if let prev = coordinator.currentDocument {
         prev.savedContentOffset = textView.contentOffset
         prev.savedSelectedRange = textView.selectedRange
       }
-      let theme = EditorTheme(font: font)
+      let theme = EditorTheme(font: font, palette: settings.colorPalette)
       let state = TextViewState(text: document.code, theme: theme, language: .racket)
       textView.setState(state)
+      textView.backgroundColor = theme.backgroundColor
       coordinator.currentDocument = document
       coordinator.observeCode(of: document, in: textView)
       textView.layoutIfNeeded()
@@ -161,10 +179,21 @@ struct CodeEditingView: UIViewRepresentable {
         textView.contentOffset = offset
       }
       coordinator.popover?.dismiss()
+    } else if themeChanged {
+      let theme = EditorTheme(font: font, palette: settings.colorPalette)
+      textView.theme = theme
+      textView.backgroundColor = theme.backgroundColor
+    }
+
+    if themeChanged {
+      applyInsertionPointColor(to: textView)
+      textView.inputAccessoryView = makeInputAccessoryView(for: textView)
+      textView.reloadInputViews()
+      coordinator.currentFont = font
+      coordinator.currentThemeName = settings.themeName
     }
 
     coordinator.allCompletions = completions
-    textView.theme = EditorTheme(font: font)
     coordinator.popover?.updateFont(font)
     if let popover = coordinator.popover,
        popover.superview == nil,
@@ -184,6 +213,8 @@ struct CodeEditingView: UIViewRepresentable {
     var allCompletions: [String] = []
     var popover: CompletionPopover?
     weak var currentDocument: EditorDocument?
+    var currentFont: UIFont?
+    var currentThemeName: ColorThemeName?
     private var didType = false
     private let indenter = RacketIndenter()
 

@@ -2,33 +2,45 @@ import Runestone
 import UIKit
 
 final class EditorTheme: Runestone.Theme {
-  private let base = DefaultTheme()
+  private lazy var base = DefaultTheme()
   private let editorFont: UIFont
+  private let palette: ColorPalette?
 
   var font: UIFont { editorFont }
-  var textColor: UIColor { base.textColor }
-  var gutterBackgroundColor: UIColor { base.gutterBackgroundColor }
-  var gutterHairlineColor: UIColor { base.gutterHairlineColor }
-  var lineNumberColor: UIColor { base.lineNumberColor }
-  var lineNumberFont: UIFont { editorFont.withSize(editorFont.pointSize) }
-  var selectedLineBackgroundColor: UIColor { base.selectedLineBackgroundColor }
-  var selectedLinesLineNumberColor: UIColor { base.selectedLinesLineNumberColor }
-  var selectedLinesGutterBackgroundColor: UIColor { base.selectedLinesGutterBackgroundColor }
-  var invisibleCharactersColor: UIColor { base.invisibleCharactersColor }
+  var textColor: UIColor { palette?.textColor ?? base.textColor }
+  var gutterBackgroundColor: UIColor { palette?.gutterBackground ?? base.gutterBackgroundColor }
+  var gutterHairlineColor: UIColor { palette?.gutterHairline ?? base.gutterHairlineColor }
+  var lineNumberColor: UIColor { palette?.lineNumber ?? base.lineNumberColor }
+  var lineNumberFont: UIFont { editorFont }
+  var selectedLineBackgroundColor: UIColor { palette?.selectedLineBackground ?? base.selectedLineBackgroundColor }
+  var selectedLinesLineNumberColor: UIColor { palette?.selectedLinesLineNumber ?? base.selectedLinesLineNumberColor }
+  var selectedLinesGutterBackgroundColor: UIColor {
+    palette?.selectedLinesGutterBackground ?? base.selectedLinesGutterBackgroundColor
+  }
+  var invisibleCharactersColor: UIColor { palette?.invisibleCharacters ?? base.invisibleCharactersColor }
   var pageGuideHairlineColor: UIColor { base.pageGuideHairlineColor }
   var pageGuideBackgroundColor: UIColor { base.pageGuideBackgroundColor }
-  var markedTextBackgroundColor: UIColor { base.markedTextBackgroundColor }
+  var markedTextBackgroundColor: UIColor { palette?.markedTextBackground ?? base.markedTextBackgroundColor }
 
-  init(font: UIFont) {
+  var backgroundColor: UIColor { palette?.backgroundColor ?? .systemBackground }
+
+  init(font: UIFont, palette: ColorPalette? = nil) {
     self.editorFont = font
+    self.palette = palette
   }
 
   func textColor(for highlightName: String) -> UIColor? {
-    base.textColor(for: highlightName)
+    if let palette {
+      return palette.syntaxColor(for: highlightName)
+    }
+    return base.textColor(for: highlightName)
   }
 
   func fontTraits(for highlightName: String) -> FontTraits {
-    base.fontTraits(for: highlightName)
+    if let palette {
+      return palette.fontTraits(for: highlightName)
+    }
+    return base.fontTraits(for: highlightName)
   }
 
   @available(iOS 16.0, *)
