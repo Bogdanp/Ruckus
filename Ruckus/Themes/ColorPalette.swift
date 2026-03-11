@@ -12,6 +12,8 @@ struct ColorPalette {
   let selectedLinesGutterBackground: UIColor
   let invisibleCharacters: UIColor
   let markedTextBackground: UIColor
+  let matchHighlightColor: UIColor
+  let rainbowColors: [UIColor]
   let syntaxColors: [String: UIColor]
   let boldNames: Set<String>
 

@@ -12,6 +12,15 @@ extension ColorPalette {
     selectedLinesGutterBackground: UIColor(hex: 0xEEE8D5),
     invisibleCharacters: UIColor(hex: 0x93A1A1, alpha: 0.5),
     markedTextBackground: UIColor(hex: 0xEEE8D5, alpha: 0.7),
+    matchHighlightColor: UIColor(hex: 0xB58900, alpha: 0.4),
+    rainbowColors: [
+      UIColor(hex: 0xDC322F, alpha: 0.12),
+      UIColor(hex: 0xCB4B16, alpha: 0.12),
+      UIColor(hex: 0xB58900, alpha: 0.12),
+      UIColor(hex: 0x859900, alpha: 0.12),
+      UIColor(hex: 0x268BD2, alpha: 0.12),
+      UIColor(hex: 0xD33682, alpha: 0.12)
+    ],
     syntaxColors: [
       Highlight.comment: UIColor(hex: 0x93A1A1),
       Highlight.string: UIColor(hex: 0x2AA198),

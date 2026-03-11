@@ -4,6 +4,9 @@ import SwiftUI
 struct ThemePreviewView: UIViewRepresentable {
   var font: UIFont
   var palette: ColorPalette?
+  var rainbowParentheses: Bool = false
+
+  private static let sampleBrackets = BracketHighlighter.findBrackets(in: sampleCode)
 
   private static let sampleCode = """
     #lang racket
@@ -32,6 +35,7 @@ struct ThemePreviewView: UIViewRepresentable {
     let state = TextViewState(text: Self.sampleCode, theme: theme, language: .racket)
     textView.setState(state)
     textView.backgroundColor = theme.backgroundColor
+    applyRainbowHighlights(to: textView)
     return textView
   }
 
@@ -39,5 +43,22 @@ struct ThemePreviewView: UIViewRepresentable {
     let theme = EditorTheme(font: font, palette: palette)
     textView.theme = theme
     textView.backgroundColor = theme.backgroundColor
+    applyRainbowHighlights(to: textView)
+  }
+
+  private func applyRainbowHighlights(to textView: TextView) {
+    guard rainbowParentheses else {
+      textView.highlightedRanges = []
+      return
+    }
+    let colors = palette?.rainbowColors ?? BracketHighlighter.defaultColors
+    let brackets = Self.sampleBrackets
+    textView.highlightedRanges = brackets.map { bracket in
+      HighlightedRange(
+        range: NSRange(location: bracket.position, length: 1),
+        color: colors[bracket.depth % colors.count],
+        cornerRadius: 2
+      )
+    }
   }
 }

@@ -29,8 +29,12 @@ struct EditorSettingsView: View {
         }
       }
 
+      Section("Highlighting") {
+        Toggle("Rainbow Parentheses", isOn: $settings.rainbowParentheses)
+      }
+
       Section("Preview") {
-        ThemePreviewView(font: settings.font, palette: settings.colorPalette)
+        ThemePreviewView(font: settings.font, palette: settings.colorPalette, rainbowParentheses: settings.rainbowParentheses)
           .frame(height: 280)
           .clipShape(RoundedRectangle(cornerRadius: 8))
           .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))

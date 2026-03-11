@@ -55,7 +55,9 @@ struct CodeEditingView: UIViewRepresentable {
     context.coordinator.popover = popover
     context.coordinator.currentFont = settings.font
     context.coordinator.currentThemeName = settings.themeName
+    context.coordinator.applyHighlightColors(from: settings)
     context.coordinator.observeCode(of: document, in: textView)
+    context.coordinator.updateBracketHighlights(in: textView)
 
     return textView
   }
@@ -159,6 +161,12 @@ struct CodeEditingView: UIViewRepresentable {
 
     let themeChanged = font != coordinator.currentFont
       || settings.themeName != coordinator.currentThemeName
+    let highlightSettingsChanged = themeChanged
+      || settings.rainbowParentheses != coordinator.rainbowEnabled
+
+    if highlightSettingsChanged {
+      coordinator.applyHighlightColors(from: settings)
+    }
 
     if document !== coordinator.currentDocument {
       if let prev = coordinator.currentDocument {
@@ -179,6 +187,7 @@ struct CodeEditingView: UIViewRepresentable {
         textView.contentOffset = offset
       }
       coordinator.popover?.dismiss()
+      coordinator.updateBracketHighlights(in: textView)
     } else if themeChanged {
       let theme = EditorTheme(font: font, palette: settings.colorPalette)
       textView.theme = theme
@@ -191,6 +200,10 @@ struct CodeEditingView: UIViewRepresentable {
       textView.reloadInputViews()
       coordinator.currentFont = font
       coordinator.currentThemeName = settings.themeName
+    }
+
+    if highlightSettingsChanged {
+      coordinator.updateBracketHighlights(in: textView)
     }
 
     coordinator.allCompletions = completions
@@ -215,6 +228,9 @@ struct CodeEditingView: UIViewRepresentable {
     weak var currentDocument: EditorDocument?
     var currentFont: UIFont?
     var currentThemeName: ColorThemeName?
+    var rainbowEnabled: Bool = false
+    var rainbowColors: [UIColor] = BracketHighlighter.defaultColors
+    var matchColor: UIColor = BracketHighlighter.matchColor
     private var didType = false
     private let indenter = RacketIndenter()
 
@@ -248,6 +264,8 @@ struct CodeEditingView: UIViewRepresentable {
       currentDocument.code = textView.text
       currentDocument.isDirty = true
       didType = true
+      lastMatchedPosition = nil
+      updateBracketHighlights(in: textView)
       updatePopover(for: textView)
     }
 
@@ -256,6 +274,112 @@ struct CodeEditingView: UIViewRepresentable {
         popover?.dismiss()
       }
       didType = false
+      updateMatchHighlight(in: textView)
+    }
+
+    func applyHighlightColors(from settings: EditorSettings) {
+      rainbowEnabled = settings.rainbowParentheses
+      if let palette = settings.colorPalette {
+        rainbowColors = palette.rainbowColors
+        matchColor = palette.matchHighlightColor
+      } else {
+        rainbowColors = BracketHighlighter.defaultColors
+        matchColor = BracketHighlighter.matchColor
+      }
+    }
+
+    func updateBracketHighlights(in textView: TextView) {
+      guard rainbowEnabled else {
+        cachedRainbowRanges = []
+        textView.highlightedRanges = cachedMatchRanges
+        return
+      }
+      let text = textView.text
+      let brackets = BracketHighlighter.findBrackets(in: text)
+      var ranges: [HighlightedRange] = []
+      for bracket in brackets {
+        let colorIndex = bracket.depth % rainbowColors.count
+        let range = HighlightedRange(
+          range: NSRange(location: bracket.position, length: 1),
+          color: rainbowColors[colorIndex],
+          cornerRadius: 2
+        )
+        ranges.append(range)
+      }
+      cachedRainbowRanges = ranges
+      textView.highlightedRanges = ranges + cachedMatchRanges
+    }
+
+    private var cachedRainbowRanges: [HighlightedRange] = []
+    private var cachedMatchRanges: [HighlightedRange] = []
+    private weak var flashView: UIView?
+    private var lastMatchedPosition: Int?
+
+    private func updateMatchHighlight(in textView: TextView) {
+      guard let selectedRange = textView.selectedTextRange else {
+        applyMatchRanges([], to: textView)
+        return
+      }
+      let cursorPos = textView.offset(
+        from: textView.beginningOfDocument, to: selectedRange.start
+      )
+      guard let match = BracketHighlighter.findMatch(in: textView.text, at: cursorPos) else {
+        applyMatchRanges([], to: textView)
+        return
+      }
+
+      // Determine which bracket the cursor is on, highlight the other one
+      let cursorOnOpen = (cursorPos == match.open + 1) || (cursorPos == match.open)
+      let otherPosition = cursorOnOpen ? match.close : match.open
+
+      let ranges = [
+        HighlightedRange(
+          range: NSRange(location: otherPosition, length: 1),
+          color: matchColor,
+          cornerRadius: 2
+        )
+      ]
+      applyMatchRanges(ranges, to: textView)
+
+      // Flash animation on the other bracket (Xcode-style)
+      if otherPosition != lastMatchedPosition {
+        lastMatchedPosition = otherPosition
+        flashMatchingBracket(at: otherPosition, in: textView)
+      }
+    }
+
+    private func applyMatchRanges(_ ranges: [HighlightedRange], to textView: TextView) {
+      if ranges.isEmpty { lastMatchedPosition = nil }
+      cachedMatchRanges = ranges
+      textView.highlightedRanges = cachedRainbowRanges + ranges
+    }
+
+    private func flashMatchingBracket(at position: Int, in textView: TextView) {
+      flashView?.layer.removeAllAnimations()
+      flashView?.removeFromSuperview()
+
+      guard let start = textView.position(from: textView.beginningOfDocument, offset: position),
+            let end = textView.position(from: start, offset: 1),
+            let textRange = textView.textRange(from: start, to: end)
+      else { return }
+
+      let rects = textView.selectionRects(for: textRange)
+      guard let firstRect = rects.first else { return }
+      let charRect = firstRect.rect
+      guard !charRect.isEmpty else { return }
+
+      let flash = UIView(frame: charRect.insetBy(dx: -1, dy: -1))
+      flash.backgroundColor = matchColor.withAlphaComponent(0.8)
+      flash.layer.cornerRadius = 3
+      flash.isUserInteractionEnabled = false
+      textView.addSubview(flash)
+      self.flashView = flash
+
+      UIView.animate(withDuration: 0.3, delay: 0.5, options: .curveEaseOut) {
+        flash.alpha = 0
+      } completion: { [weak flash] _ in
+        flash?.removeFromSuperview()
+      }
     }
 
     func textView(

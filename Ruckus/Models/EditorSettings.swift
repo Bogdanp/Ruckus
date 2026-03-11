@@ -5,6 +5,7 @@ final class EditorSettings {
   private static let fontSizeKey = "editorFontSize"
   private static let fontNameKey = "editorFontName"
   private static let themeNameKey = "editorThemeName"
+  private static let rainbowParenthesesKey = "editorRainbowParentheses"
 
   var fontSize: CGFloat {
     didSet { UserDefaults.standard.set(fontSize, forKey: Self.fontSizeKey) }
@@ -17,6 +18,10 @@ final class EditorSettings {
 
   var themeName: ColorThemeName {
     didSet { UserDefaults.standard.set(themeName.rawValue, forKey: Self.themeNameKey) }
+  }
+
+  var rainbowParentheses: Bool {
+    didSet { UserDefaults.standard.set(rainbowParentheses, forKey: Self.rainbowParenthesesKey) }
   }
 
   var colorPalette: ColorPalette? { themeName.palette }
@@ -41,6 +46,7 @@ final class EditorSettings {
     self.fontName = defaults.string(forKey: Self.fontNameKey) ?? ""
     let storedTheme = defaults.string(forKey: Self.themeNameKey) ?? ""
     self.themeName = ColorThemeName(rawValue: storedTheme) ?? .system
+    self.rainbowParentheses = defaults.bool(forKey: Self.rainbowParenthesesKey)
   }
 
   static var monospaceFamilies: [String] {
