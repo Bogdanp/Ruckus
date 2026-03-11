@@ -7,6 +7,7 @@ struct ContentView: View {
   @Environment(\.saveAction) private var saveAction
   @Environment(\.shareAction) private var shareAction
   @State private var editorUndoManager: UndoManager?
+  @State private var editorFindInteraction: UIFindInteraction?
   @State private var activeSheet: ActiveSheet?
 
   var body: some View {
@@ -28,6 +29,7 @@ struct ContentView: View {
               CodeEditingView(
                 document: doc,
                 textViewUndoManager: $editorUndoManager,
+                findInteraction: $editorFindInteraction,
                 completions: doc.completions.isEmpty ? store.baseCompletions : doc.completions
               )
               .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -123,6 +125,13 @@ struct ContentView: View {
       Label("Revert", systemImage: "arrow.counterclockwise")
     }
     .disabled(store.activeDocument?.path == nil || store.activeDocument?.isDirty != true)
+    Divider()
+    Button {
+      editorFindInteraction?.presentFindNavigator(showingReplace: false)
+    } label: {
+      Label("Find...", systemImage: "magnifyingglass")
+    }
+    .disabled(store.activeDocument == nil)
     Divider()
     Button {
       editorUndoManager?.undo()

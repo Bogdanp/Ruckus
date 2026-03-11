@@ -4,6 +4,7 @@ import SwiftUI
 struct CodeEditingView: UIViewRepresentable {
   var document: EditorDocument
   @Binding var textViewUndoManager: UndoManager?
+  @Binding var findInteraction: UIFindInteraction?
   var completions: [String] = []
   @Environment(EditorSettings.self) private var settings
 
@@ -40,6 +41,7 @@ struct CodeEditingView: UIViewRepresentable {
     textView.textContainerInset = UIEdgeInsets(top: 8, left: 5, bottom: 8, right: 5)
     textView.gutterLeadingPadding = 8
     textView.gutterTrailingPadding = 5
+    textView.isFindInteractionEnabled = true
     textView.inputAccessoryView = makeInputAccessoryView(for: textView)
     let theme = EditorTheme(font: settings.font)
     let state = TextViewState(text: document.code, theme: theme, language: .racket)
@@ -171,6 +173,9 @@ struct CodeEditingView: UIViewRepresentable {
     }
     if textViewUndoManager !== textView.undoManager {
       textViewUndoManager = textView.undoManager
+    }
+    if findInteraction !== textView.findInteraction {
+      findInteraction = textView.findInteraction
     }
   }
 
