@@ -44,10 +44,10 @@ while IFS= read -r f; do
 done < <(find "$SRCROOT/vendor" "$SRCROOT/Tuist/.build/checkouts" -maxdepth 2 -name 'LICENSE*' 2>/dev/null | sort)
 
 # Racket itself (Apache 2.0).
-add_entry "Racket" "$SRCROOT/Ruckus/racket/share/racket-lib/LICENSE"
+add_entry "Racket" "$PBRACKET_ROOT/LICENSE.txt"
 
 # Racket packages — collect all license/copying files per package.
-for pkg_dir in "$SRCROOT/Ruckus/racket/share"/*/; do
+for pkg_dir in "$SRCROOT/Ruckus/racket/share/pkgs"/*/; do
   pkg_name=$(basename "$pkg_dir")
   if find "$pkg_dir" -maxdepth 1 \( -name 'LICENSE*' -o -name 'COPYING*' \) -print -quit | grep -q .; then
     add_dir_entry "$pkg_name" "$pkg_dir"
