@@ -11,6 +11,8 @@
 
     ;; Unused, but distributed:
     "crypto"
+    "csv-reading"
+    "csv-writing"
     "deta"
     "http-easy"
     "math"
