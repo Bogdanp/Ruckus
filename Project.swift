@@ -128,7 +128,7 @@ let project = Project(
       bundleId: "io.defn.TreeSitterRacket",
       deploymentTargets: iOS,
       sources: ["vendor/tree-sitter-racket/src/**"],
-      headers: .headers(public: ["vendor/tree-sitter-racket/bindings/swift/**"]),
+      headers: .headers(project: ["vendor/tree-sitter-racket/bindings/swift/**"]),
       settings: .settings(base: [
         "HEADER_SEARCH_PATHS": "$(SRCROOT)/vendor/tree-sitter-racket/src",
         "MODULEMAP_FILE": "$(SRCROOT)/vendor/tree-sitter-racket.modulemap",
@@ -142,7 +142,8 @@ let project = Project(
       name: "Ruckus",
       buildAction: .buildAction(targets: ["Ruckus"]),
       testAction: .targets(["RuckusTests"]),
-      runAction: .runAction(executable: "Ruckus")
+      runAction: .runAction(executable: "Ruckus"),
+      archiveAction: .archiveAction(configuration: "Release")
     )
   ]
 )
