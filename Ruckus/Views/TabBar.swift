@@ -9,27 +9,36 @@ struct TabBar: View {
 
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
-      HStack(spacing: 6) {
-        ForEach(documents) { doc in
-          TabBarItem(
-            title: doc.title,
-            isDirty: doc.isDirty,
-            isActive: doc.id == activeDocumentID,
-            onSelect: { onSelect(doc) },
-            onClose: { onClose(doc) }
-          )
+      ScrollViewReader { proxy in
+        HStack(spacing: 6) {
+          ForEach(documents) { doc in
+            TabBarItem(
+              title: doc.title,
+              isDirty: doc.isDirty,
+              isActive: doc.id == activeDocumentID,
+              onSelect: { onSelect(doc) },
+              onClose: { onClose(doc) }
+            )
+            .id(doc.id)
+          }
+          Button(action: onNew) {
+            Image(systemName: "plus")
+              .font(.system(size: 13, weight: .medium))
+              .foregroundStyle(.secondary)
+              .frame(width: 28, height: 28)
+              .contentShape(Rectangle())
+          }
+          .buttonStyle(.plain)
         }
-        Button(action: onNew) {
-          Image(systemName: "plus")
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(.secondary)
-            .frame(width: 28, height: 28)
-            .contentShape(Rectangle())
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .onChange(of: activeDocumentID) { _, id in
+          guard let id else { return }
+          withAnimation {
+            proxy.scrollTo(id, anchor: .center)
+          }
         }
-        .buttonStyle(.plain)
       }
-      .padding(.horizontal, 8)
-      .padding(.vertical, 6)
     }
     .background(.bar)
     .overlay(alignment: .bottom) {
