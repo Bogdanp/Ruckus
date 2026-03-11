@@ -1,5 +1,4 @@
 import AppIntents
-import WidgetKit
 
 struct ExecuteScriptIntent: AppIntent {
   static let title: LocalizedStringResource = "Run Script"
@@ -8,18 +7,29 @@ struct ExecuteScriptIntent: AppIntent {
   @Parameter(title: "Script", optionsProvider: ScriptOptionsProvider())
   var script: String
 
+  static let openAppWhenRun = true
+
   static var parameterSummary: some ParameterSummary {
     Summary("Run \(\.$script)")
   }
 
+  @MainActor
   func perform() async throws -> some IntentResult & ReturnsValue<String> {
     guard let root = ScriptManifest.rootPath() else {
       throw IntentError.message("No scripts available. Open the app first.")
     }
     let fullPath = (root as NSString).appendingPathComponent(script)
-    let output = try await ScriptRunner.run(scriptAtPath: fullPath)
-    ScriptOutputCache.save(output: output, for: script)
-    WidgetCenter.shared.reloadTimelines(ofKind: ScriptOutputCache.widgetKind)
+    let store = EditorStore.shared
+    try await store.open(path: fullPath)
+    guard let doc = store.activeDocument else {
+      throw IntentError.message("Failed to open script.")
+    }
+    await store.execute()
+    guard let executionId = doc.executionId else {
+      throw IntentError.message("Failed to start script execution.")
+    }
+    try await ExecutionRegistry.shared.awaitCompletion(of: executionId)
+    let output = doc.output.string
     return .result(value: output)
   }
 }
