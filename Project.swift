@@ -65,11 +65,6 @@ let project = Project(
       entitlements: .file(path: "Ruckus/Ruckus.entitlements"),
       scripts: [
         .pre(
-          script: "make -C \"${SRCROOT}\"",
-          name: "Build Racket Core",
-          basedOnDependencyAnalysis: false
-        ),
-        .pre(
           script: "swiftlint lint --quiet",
           name: "SwiftLint",
           basedOnDependencyAnalysis: false
