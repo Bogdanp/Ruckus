@@ -245,11 +245,21 @@ class EditorStore {
 
   private func refreshScriptManifest() async {
     guard let root = try? await Backend.shared.getRootPath() else { return }
-    let entries = (try? await Backend.shared.listFiles(atPath: root)) ?? []
-    let scripts = entries.compactMap { entry -> String? in
-      guard case .file(let file) = entry,
-            file.path.hasSuffix(".rkt") else { return nil }
-      return (file.path as NSString).lastPathComponent
+    var scripts = [String]()
+    var queue = [root]
+    while !queue.isEmpty {
+      let dir = queue.removeFirst()
+      let entries = (try? await Backend.shared.listFiles(atPath: dir)) ?? []
+      for entry in entries {
+        switch entry {
+        case .file(let file) where file.path.hasSuffix(".rkt"):
+          scripts.append(Self.relativePath(file.path, relativeTo: root))
+        case .folder(let folder):
+          queue.append(folder.path)
+        default:
+          break
+        }
+      }
     }
     ScriptManifest.update(rootPath: root, scripts: scripts)
   }
@@ -258,7 +268,11 @@ class EditorStore {
     guard let path = doc.path,
           let root = try? await Backend.shared.getRootPath(),
           path.hasPrefix(root) else { return nil }
-    return String(path.dropFirst(root.count).drop(while: { $0 == "/" }))
+    return Self.relativePath(path, relativeTo: root)
+  }
+
+  private static func relativePath(_ path: String, relativeTo root: String) -> String {
+    String(path.dropFirst(root.count).drop(while: { $0 == "/" }))
   }
 
   private func saveSession() {
