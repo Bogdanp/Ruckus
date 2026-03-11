@@ -29,6 +29,10 @@ struct SettingsView: View {
             Label("Leave a Review", systemImage: "star.fill")
               .labelStyle(SettingsLabelStyle(backgroundColor: .yellow))
           }
+          Link(destination: URL(string: "https://testflight.apple.com/join/dgRamw3P")!) {
+            Label("Join the Beta", systemImage: "paperplane.fill")
+              .labelStyle(SettingsLabelStyle(backgroundColor: .mint))
+          }
           NavigationLink {
             SupportView()
           } label: {
