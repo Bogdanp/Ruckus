@@ -16,7 +16,9 @@
      (.container
       (.hero-layout.reveal
        (.hero-text
-        (:img.hero-icon ([:src "images/app-icon.png"] [:alt "Ruckus app icon"]))
+        (:img.hero-icon
+         ([:src "images/app-icon.png"]
+          [:alt "Ruckus app icon"]))
         (:h1 "Ruckus")
         (:p.tagline "Racket for iOS")
         (:p.hero-sub "Write, run, and explore Racket on your iPhone and iPad.")
@@ -50,18 +52,18 @@ SCRIPT
 (define (feature-card num feature)
   (haml
    (.feature-card.reveal
-    (:span.feature-num (format "~a" (~a num #:width 2 #:align 'right #:pad-string "0")))
+    (:span.feature-num (~pad num))
     (:h3 (car feature))
     (:p (cadr feature)))))
 
-(define (~a v #:width w #:align _align #:pad-string pad)
-  (define s (format "~a" v))
-  (define missing (max 0 (- w (string-length s))))
-  (string-append (make-string missing (string-ref pad 0)) s))
+(define (~pad n)
+  (if (< n 10)
+      (format "0~a" n)
+      (format "~a" n)))
 
 (define features
   '(("Run Scripts"
-     "Execute Racket programs and see output as it\u2019s produced. Everything runs locally on your device.")
+     "Execute Racket programs and see output as it's produced. Everything runs locally on your device.")
     ("Rainbow Parentheses"
      "Color-coded nesting depth and bracket matching.")
     ("Smart Indentation"
