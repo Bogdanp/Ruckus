@@ -107,10 +107,7 @@ jobs:
         run: ./bin/pbraco setup
       - name: Pin package catalogs
         run: |
-          ./bin/pbraco pkg config \
-            --user \
-            --set catalogs \
-            "$(./bin/pbraco pkg config catalogs | head -1)" \
+          ./bin/pbraco pkg config --user --set catalogs \
             https://pkgs.racket-lang.org/pkgs-all?version=9.1
           ./bin/pbraco pkg config catalogs
       - name: Cache Noise
