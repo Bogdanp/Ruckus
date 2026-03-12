@@ -83,6 +83,7 @@ jobs:
         working-directory: racket
         run: |
           make fetch-pb
+          mkdir -p racket/etc
           cat >racket/etc/config.rktd <<EOF
           #hash((default-scope . "installation"))
           EOF
