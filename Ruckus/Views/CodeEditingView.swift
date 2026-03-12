@@ -123,6 +123,20 @@ struct CodeEditingView: UIViewRepresentable {
     bar.allowsSelfSizing = true
     if let palette = settings.colorPalette {
       bar.backgroundColor = palette.backgroundColor
+
+      // Extend a filler view below the accessory bar to cover the
+      // keyboard's rounded top corners (visible when theme != system).
+      let filler = UIView()
+      filler.backgroundColor = palette.backgroundColor
+      filler.translatesAutoresizingMaskIntoConstraints = false
+      bar.addSubview(filler)
+      NSLayoutConstraint.activate([
+        filler.leadingAnchor.constraint(equalTo: bar.leadingAnchor),
+        filler.trailingAnchor.constraint(equalTo: bar.trailingAnchor),
+        filler.topAnchor.constraint(equalTo: bar.bottomAnchor),
+        // Arbitrary large value; clipped by the screen edge.
+        filler.heightAnchor.constraint(equalToConstant: 500)
+      ])
     }
 
     let symbolsRow = makeSnippetRow(snippets: Self.symbols, for: textView)
