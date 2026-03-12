@@ -83,6 +83,9 @@ jobs:
         working-directory: racket
         run: |
           make fetch-pb
+          cat >racket/etc/config.rktd <<EOF
+          #hash((default-scope . "installation"))
+          EOF
           mkdir -p racket/src/build
           cd racket/src/build
           cat >libffi.pc <<EOF
