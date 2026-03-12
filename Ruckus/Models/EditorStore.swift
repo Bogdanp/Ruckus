@@ -191,6 +191,7 @@ class EditorStore {
       root = try await Backend.shared.getRootPath()
     } catch {
       Logger.session.error("\(#function): failed to get root path: \(error)")
+      newDocument()
       return
     }
     documents.removeAll()
