@@ -16,7 +16,7 @@
      (.container
       (.hero-layout.reveal
        (.hero-text
-        (:img.hero-icon ([:src "/images/app-icon.png"] [:alt "Ruckus app icon"]))
+        (:img.hero-icon ([:src "images/app-icon.png"] [:alt "Ruckus app icon"]))
         (:h1 "Ruckus")
         (:p.tagline "Racket for iOS")
         (:p.hero-sub "Write, run, and explore Racket on your iPhone and iPad.")
@@ -27,9 +27,9 @@
            [:alt "Download on the App Store"]))))
        (.hero-screenshots
         (.screenshot-stack
-         (:img.ss.ss-back-1 ([:src "/images/screenshot-output.png"] [:alt "Script output view"]))
-         (:img.ss.ss-back-2 ([:src "/images/screenshot-settings.png"] [:alt "App settings"]))
-         (:img.ss.ss-front ([:src "/images/screenshot-editor.png"] [:alt "Code editor with Racket syntax highlighting"])))))))
+         (:img.ss.ss-back-1 ([:src "images/screenshot-output.png"] [:alt "Script output view"]))
+         (:img.ss.ss-back-2 ([:src "images/screenshot-settings.png"] [:alt "App settings"]))
+         (:img.ss.ss-front ([:src "images/screenshot-editor.png"] [:alt "Code editor with Racket syntax highlighting"])))))))
 
     (:section.features
      (.container
