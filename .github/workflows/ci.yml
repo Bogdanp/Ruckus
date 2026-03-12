@@ -9,7 +9,7 @@ jobs:
   lint:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install SwiftLint
         run: brew install swiftlint
       - name: Lint
@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Cache PB Racket
         id: cache-pb
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: pb-racket.tar.gz
           key: pb-racket-v9.1
@@ -78,7 +78,7 @@ jobs:
       - name: Package PB Racket
         if: steps.cache-pb.outputs.cache-hit != 'true'
         run: tar czf pb-racket.tar.gz -C racket racket/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pb-racket
           path: pb-racket.tar.gz
@@ -87,8 +87,8 @@ jobs:
     needs: build-pb-racket
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         with:
           name: pb-racket
           path: /tmp
@@ -100,7 +100,7 @@ jobs:
       - name: Add PB Racket to PATH
         run: echo "/tmp/pb-racket/racket/bin" >> "$GITHUB_PATH"
       - name: Cache Noise
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ../Noise
           key: noise-racket-9.1
@@ -117,7 +117,7 @@ jobs:
         run: make
       - name: Prepare distribution
         run: ./bin/prepare-distribution
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ruckus-core
           path: |
@@ -129,13 +129,13 @@ jobs:
     needs: build-core
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
         with:
           name: ruckus-core
           path: .
       - name: Cache Noise
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ../Noise
           key: noise-racket-9.1
