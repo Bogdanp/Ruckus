@@ -116,7 +116,7 @@ jobs:
       - name: Set PBRACKET_ROOT
         run: echo "PBRACKET_ROOT=$GITHUB_WORKSPACE/racket" >> "$GITHUB_ENV"
       - name: List PB Racket contents
-        run: find racket/racket/ -maxdepth 2
+        run: find racket/racket -maxdepth 2
       - name: Setup PB Racket
         run: ./bin/pbraco setup
       - name: Pin package catalogs
