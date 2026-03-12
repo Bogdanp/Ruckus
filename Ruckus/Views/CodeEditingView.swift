@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Runestone
 import SwiftUI
 
@@ -169,25 +170,7 @@ struct CodeEditingView: UIViewRepresentable {
     }
 
     if document !== coordinator.currentDocument {
-      if let prev = coordinator.currentDocument {
-        prev.savedContentOffset = textView.contentOffset
-        prev.savedSelectedRange = textView.selectedRange
-      }
-      let theme = EditorTheme(font: font, palette: settings.colorPalette)
-      let state = TextViewState(text: document.code, theme: theme, language: .racket)
-      textView.setState(state)
-      textView.backgroundColor = theme.backgroundColor
-      coordinator.currentDocument = document
-      coordinator.observeCode(of: document, in: textView)
-      textView.layoutIfNeeded()
-      if let range = document.savedSelectedRange {
-        textView.selectedRange = range
-      }
-      if let offset = document.savedContentOffset {
-        textView.contentOffset = offset
-      }
-      coordinator.popover?.dismiss()
-      coordinator.updateBracketHighlights(in: textView)
+      switchDocument(in: textView, coordinator: coordinator, font: font)
     } else if themeChanged {
       let theme = EditorTheme(font: font, palette: settings.colorPalette)
       textView.theme = theme
@@ -221,6 +204,30 @@ struct CodeEditingView: UIViewRepresentable {
     }
   }
 
+  private func switchDocument(
+    in textView: TextView, coordinator: Coordinator, font: UIFont
+  ) {
+    if let prev = coordinator.currentDocument {
+      prev.savedContentOffset = textView.contentOffset
+      prev.savedSelectedRange = textView.selectedRange
+    }
+    let theme = EditorTheme(font: font, palette: settings.colorPalette)
+    let state = TextViewState(text: document.code, theme: theme, language: .racket)
+    textView.setState(state)
+    textView.backgroundColor = theme.backgroundColor
+    coordinator.currentDocument = document
+    coordinator.observeCode(of: document, in: textView)
+    textView.layoutIfNeeded()
+    if let range = document.savedSelectedRange {
+      textView.selectedRange = range
+    }
+    if let offset = document.savedContentOffset {
+      textView.contentOffset = offset
+    }
+    coordinator.popover?.dismiss()
+    coordinator.updateBracketHighlights(in: textView)
+  }
+
   @MainActor
   class Coordinator: @preconcurrency TextViewDelegate {
     var allCompletions: [String] = []
@@ -233,6 +240,7 @@ struct CodeEditingView: UIViewRepresentable {
     var matchColor: UIColor = BracketHighlighter.matchColor
     private var didType = false
     private let indenter = RacketIndenter()
+    let bracketHighlighter = BracketHighlighter()
 
     private static let wordChars = CharacterSet.alphanumerics
       .union(CharacterSet(charactersIn: "-_!?*/+<>="))
@@ -277,6 +285,11 @@ struct CodeEditingView: UIViewRepresentable {
       updateMatchHighlight(in: textView)
     }
 
+    private var cachedRainbowRanges: [HighlightedRange] = []
+    private var cachedMatchRanges: [HighlightedRange] = []
+    private weak var flashView: UIView?
+    private var lastMatchedPosition: Int?
+
     func applyHighlightColors(from settings: EditorSettings) {
       rainbowEnabled = settings.rainbowParentheses
       if let palette = settings.colorPalette {
@@ -295,25 +308,16 @@ struct CodeEditingView: UIViewRepresentable {
         return
       }
       let text = textView.text
-      let brackets = BracketHighlighter.findBrackets(in: text)
-      var ranges: [HighlightedRange] = []
-      for bracket in brackets {
-        let colorIndex = bracket.depth % rainbowColors.count
-        let range = HighlightedRange(
+      let brackets = bracketHighlighter.findBrackets(in: text)
+      cachedRainbowRanges = brackets.map { bracket in
+        HighlightedRange(
           range: NSRange(location: bracket.position, length: 1),
-          color: rainbowColors[colorIndex],
+          color: rainbowColors[bracket.depth % rainbowColors.count],
           cornerRadius: 2
         )
-        ranges.append(range)
       }
-      cachedRainbowRanges = ranges
-      textView.highlightedRanges = ranges + cachedMatchRanges
+      textView.highlightedRanges = cachedRainbowRanges + cachedMatchRanges
     }
-
-    private var cachedRainbowRanges: [HighlightedRange] = []
-    private var cachedMatchRanges: [HighlightedRange] = []
-    private weak var flashView: UIView?
-    private var lastMatchedPosition: Int?
 
     private func updateMatchHighlight(in textView: TextView) {
       guard let selectedRange = textView.selectedTextRange else {
@@ -323,12 +327,11 @@ struct CodeEditingView: UIViewRepresentable {
       let cursorPos = textView.offset(
         from: textView.beginningOfDocument, to: selectedRange.start
       )
-      guard let match = BracketHighlighter.findMatch(in: textView.text, at: cursorPos) else {
+      guard let match = bracketHighlighter.findMatch(in: textView.text, at: cursorPos) else {
         applyMatchRanges([], to: textView)
         return
       }
 
-      // Determine which bracket the cursor is on, highlight the other one
       let cursorOnOpen = (cursorPos == match.open + 1) || (cursorPos == match.open)
       let otherPosition = cursorOnOpen ? match.close : match.open
 
@@ -341,7 +344,6 @@ struct CodeEditingView: UIViewRepresentable {
       ]
       applyMatchRanges(ranges, to: textView)
 
-      // Flash animation on the other bracket (Xcode-style)
       if otherPosition != lastMatchedPosition {
         lastMatchedPosition = otherPosition
         flashMatchingBracket(at: otherPosition, in: textView)

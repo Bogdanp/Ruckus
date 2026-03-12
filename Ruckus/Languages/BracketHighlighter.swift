@@ -26,50 +26,58 @@ struct BracketHighlighter {
   private static let openers: Set<Character> = ["(", "[", "{"]
   private static let closers: Set<Character> = [")", "]", "}"]
 
-  static func findBrackets(in text: String) -> [Bracket] {
+  /// Advances `idx` past a comment or string literal starting at the current position.
+  /// Returns `true` if something was skipped (caller should `continue` the loop).
+  private func skipNonCode(in chars: [Character], idx: inout Int, limit: Int) -> Bool {
+    if chars[idx] == ";" {
+      idx += 1
+      while idx < limit && chars[idx] != "\n" { idx += 1 }
+      return true
+    }
+
+    if chars[idx] == "#" && idx + 1 < chars.count && chars[idx + 1] == "|" {
+      idx += 2
+      var nesting = 1
+      while idx + 1 < chars.count && nesting > 0 {
+        if chars[idx] == "#" && chars[idx + 1] == "|" {
+          nesting += 1
+          idx += 2
+        } else if chars[idx] == "|" && chars[idx + 1] == "#" {
+          nesting -= 1
+          idx += 2
+        } else {
+          idx += 1
+        }
+      }
+      return true
+    }
+
+    if chars[idx] == "\"" {
+      idx += 1
+      while idx < chars.count && chars[idx] != "\"" {
+        if chars[idx] == "\\" { idx += 1 }
+        idx += 1
+      }
+      idx += 1
+      return true
+    }
+
+    return false
+  }
+
+  func findBrackets(in text: String) -> [Bracket] {
     let chars = Array(text)
     var brackets: [Bracket] = []
     var depth = 0
     var idx = 0
 
     while idx < chars.count {
-      if chars[idx] == ";" {
-        idx += 1
-        while idx < chars.count && chars[idx] != "\n" { idx += 1 }
-        continue
-      }
+      if skipNonCode(in: chars, idx: &idx, limit: chars.count) { continue }
 
-      if chars[idx] == "#" && idx + 1 < chars.count && chars[idx + 1] == "|" {
-        idx += 2
-        var nesting = 1
-        while idx + 1 < chars.count && nesting > 0 {
-          if chars[idx] == "#" && chars[idx + 1] == "|" {
-            nesting += 1
-            idx += 2
-          } else if chars[idx] == "|" && chars[idx + 1] == "#" {
-            nesting -= 1
-            idx += 2
-          } else {
-            idx += 1
-          }
-        }
-        continue
-      }
-
-      if chars[idx] == "\"" {
-        idx += 1
-        while idx < chars.count && chars[idx] != "\"" {
-          if chars[idx] == "\\" { idx += 1 }
-          idx += 1
-        }
-        idx += 1
-        continue
-      }
-
-      if openers.contains(chars[idx]) {
+      if Self.openers.contains(chars[idx]) {
         brackets.append(Bracket(position: idx, depth: depth, character: chars[idx]))
         depth += 1
-      } else if closers.contains(chars[idx]) {
+      } else if Self.closers.contains(chars[idx]) {
         depth = max(0, depth - 1)
         brackets.append(Bracket(position: idx, depth: depth, character: chars[idx]))
       }
@@ -80,7 +88,7 @@ struct BracketHighlighter {
     return brackets
   }
 
-  static func findMatch(in text: String, at cursorPosition: Int) -> MatchedPair? {
+  func findMatch(in text: String, at cursorPosition: Int) -> MatchedPair? {
     let chars = Array(text)
     guard cursorPosition >= 0, cursorPosition <= chars.count else { return nil }
 
@@ -89,11 +97,11 @@ struct BracketHighlighter {
       guard pos >= 0, pos < chars.count else { continue }
       let char = chars[pos]
 
-      if openers.contains(char) {
+      if Self.openers.contains(char) {
         if let closePos = findMatchingClose(in: chars, from: pos) {
           return MatchedPair(open: pos, close: closePos)
         }
-      } else if closers.contains(char) {
+      } else if Self.closers.contains(char) {
         if let openPos = findMatchingOpen(in: chars, from: pos) {
           return MatchedPair(open: openPos, close: pos)
         }
@@ -103,48 +111,18 @@ struct BracketHighlighter {
     return nil
   }
 
-  private static func findMatchingClose(in chars: [Character], from start: Int) -> Int? {
+  private func findMatchingClose(in chars: [Character], from start: Int) -> Int? {
     let opener = chars[start]
     let closer = matchingCloser(for: opener)
     var depth = 0
     var idx = start
 
     while idx < chars.count {
-      if chars[idx] == ";" {
-        idx += 1
-        while idx < chars.count && chars[idx] != "\n" { idx += 1 }
-        continue
-      }
+      if skipNonCode(in: chars, idx: &idx, limit: chars.count) { continue }
 
-      if chars[idx] == "#" && idx + 1 < chars.count && chars[idx + 1] == "|" {
-        idx += 2
-        var nesting = 1
-        while idx + 1 < chars.count && nesting > 0 {
-          if chars[idx] == "#" && chars[idx + 1] == "|" {
-            nesting += 1
-            idx += 2
-          } else if chars[idx] == "|" && chars[idx + 1] == "#" {
-            nesting -= 1
-            idx += 2
-          } else {
-            idx += 1
-          }
-        }
-        continue
-      }
-
-      if chars[idx] == "\"" {
-        idx += 1
-        while idx < chars.count && chars[idx] != "\"" {
-          if chars[idx] == "\\" { idx += 1 }
-          idx += 1
-        }
-        idx += 1
-        continue
-      }
-
-      if chars[idx] == opener { depth += 1 }
-      else if chars[idx] == closer {
+      if chars[idx] == opener {
+        depth += 1
+      } else if chars[idx] == closer {
         depth -= 1
         if depth == 0 { return idx }
       }
@@ -155,45 +133,14 @@ struct BracketHighlighter {
     return nil
   }
 
-  private static func findMatchingOpen(in chars: [Character], from start: Int) -> Int? {
+  private func findMatchingOpen(in chars: [Character], from start: Int) -> Int? {
     let closer = chars[start]
     let opener = matchingOpener(for: closer)
     var stack: [Int] = []
     var idx = 0
 
     while idx <= start {
-      if chars[idx] == ";" {
-        idx += 1
-        while idx <= start && chars[idx] != "\n" { idx += 1 }
-        continue
-      }
-
-      if chars[idx] == "#" && idx + 1 < chars.count && chars[idx + 1] == "|" {
-        idx += 2
-        var nesting = 1
-        while idx + 1 < chars.count && nesting > 0 {
-          if chars[idx] == "#" && chars[idx + 1] == "|" {
-            nesting += 1
-            idx += 2
-          } else if chars[idx] == "|" && chars[idx + 1] == "#" {
-            nesting -= 1
-            idx += 2
-          } else {
-            idx += 1
-          }
-        }
-        continue
-      }
-
-      if chars[idx] == "\"" {
-        idx += 1
-        while idx < chars.count && chars[idx] != "\"" {
-          if chars[idx] == "\\" { idx += 1 }
-          idx += 1
-        }
-        idx += 1
-        continue
-      }
+      if skipNonCode(in: chars, idx: &idx, limit: start + 1) { continue }
 
       if chars[idx] == opener {
         stack.append(idx)
@@ -210,7 +157,7 @@ struct BracketHighlighter {
     return nil
   }
 
-  private static func matchingCloser(for opener: Character) -> Character {
+  private func matchingCloser(for opener: Character) -> Character {
     switch opener {
     case "(": return ")"
     case "[": return "]"
@@ -219,7 +166,7 @@ struct BracketHighlighter {
     }
   }
 
-  private static func matchingOpener(for closer: Character) -> Character {
+  private func matchingOpener(for closer: Character) -> Character {
     switch closer {
     case ")": return "("
     case "]": return "["

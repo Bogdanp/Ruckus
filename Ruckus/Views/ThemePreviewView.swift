@@ -6,7 +6,7 @@ struct ThemePreviewView: UIViewRepresentable {
   var palette: ColorPalette?
   var rainbowParentheses: Bool = false
 
-  private static let sampleBrackets = BracketHighlighter.findBrackets(in: sampleCode)
+  private static let sampleBrackets = BracketHighlighter().findBrackets(in: sampleCode)
 
   private static let sampleCode = """
     #lang racket
