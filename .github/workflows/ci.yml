@@ -91,6 +91,7 @@ jobs:
       - uses: Bogdanp/setup-racket@v1.14
         with:
           version: '9.1'
+          architecture: aarch64
       - uses: actions/download-artifact@v8
         with:
           name: pb-racket
