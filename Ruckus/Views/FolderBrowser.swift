@@ -10,10 +10,14 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
   @ViewBuilder var fileRow: (BrowserEntry) -> FileRow
 
   @Environment(\.dismiss) private var dismiss
+  enum BrowserState {
+    case loading
+    case loaded([BrowserEntry])
+    case error(String)
+  }
+
   @State private var rootPath = ""
-  @State private var entries: [BrowserEntry] = []
-  @State private var isLoading = true
-  @State private var error: String?
+  @State private var state: BrowserState = .loading
   @State private var newFolderName = ""
   @State private var showNewFolderAlert = false
 
@@ -22,15 +26,18 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
       VStack(spacing: 0) {
         header()
         Group {
-          if isLoading {
+          switch state {
+          case .loading:
             ProgressView()
               .frame(maxWidth: .infinity, maxHeight: .infinity)
-          } else if let error {
-            ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error))
-          } else if entries.isEmpty {
-            ContentUnavailableView("No Files", systemImage: "doc", description: Text("Save a file to see it here."))
-          } else {
-            list
+          case .error(let message):
+            ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(message))
+          case .loaded(let entries):
+            if entries.isEmpty {
+              ContentUnavailableView("No Files", systemImage: "doc", description: Text("Save a file to see it here."))
+            } else {
+              list(entries)
+            }
           }
         }
       }
@@ -71,7 +78,7 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
     }
   }
 
-  private var list: some View {
+  private func list(_ entries: [BrowserEntry]) -> some View {
     List(entries) { entry in
       switch entry.kind {
       case .folder:
@@ -110,19 +117,16 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
       currentDirectory = rootPath
       await loadEntries()
     } catch {
-      self.error = error.localizedDescription
-      isLoading = false
+      state = .error(error.localizedDescription)
     }
   }
 
   private func loadEntries() async {
     do {
       let rawEntries = try await Backend.shared.listFiles(atPath: currentDirectory)
-      entries = rawEntries.toBrowserEntries()
-      isLoading = false
+      state = .loaded(rawEntries.toBrowserEntries())
     } catch {
-      self.error = error.localizedDescription
-      isLoading = false
+      state = .error(error.localizedDescription)
     }
   }
 
@@ -134,17 +138,20 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
       try await Backend.shared.createDirectory(atPath: path)
       await loadEntries()
     } catch {
-      self.error = error.localizedDescription
+      state = .error(error.localizedDescription)
     }
   }
 
   private func deleteEntry(_ entry: BrowserEntry) async {
     do {
       try await Backend.shared.deleteFile(atPath: entry.path)
-      entries.removeAll { $0.id == entry.id }
+      if case .loaded(var entries) = state {
+        entries.removeAll { $0.id == entry.id }
+        state = .loaded(entries)
+      }
       onDelete?(entry)
     } catch {
-      self.error = error.localizedDescription
+      state = .error(error.localizedDescription)
     }
   }
 }
