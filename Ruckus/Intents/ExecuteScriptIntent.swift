@@ -28,7 +28,15 @@ struct ExecuteScriptIntent: AppIntent {
     guard let executionId = doc.executionId else {
       throw IntentError.message("Failed to start script execution.")
     }
-    try await ExecutionRegistry.shared.awaitCompletion(of: executionId)
+    let result = try await ExecutionRegistry.shared.awaitCompletion(of: executionId)
+    switch result {
+    case .completed:
+      break
+    case .stopped:
+      throw IntentError.message("Script execution was stopped.")
+    case .failed(let error):
+      throw IntentError.message("Script failed: \(error.localizedDescription)")
+    }
     let output = doc.output.string
     return .result(value: output)
   }

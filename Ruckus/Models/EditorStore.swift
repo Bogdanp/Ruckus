@@ -78,7 +78,7 @@ class EditorStore {
 
   func close(_ doc: EditorDocument) {
     if let id = doc.executionId {
-      ExecutionRegistry.shared.unregister(executionId: id)
+      ExecutionService.shared.finishExecution(executionId: id, doc: doc, result: .stopped)
       Task {
         do {
           try await Backend.shared.stopExecution(id)
@@ -127,7 +127,7 @@ class EditorStore {
       let id = try await Backend.shared.executeScript(atPath: path)
       doc.executionId = id
       ExecutionRegistry.shared.register(doc, executionId: id)
-      AppDelegate.runExecution(id)
+      ExecutionService.shared.runExecution(id)
     } catch {
       doc.appendOutput(error.localizedDescription, stream: .stderr)
       doc.isEvaluating = false

@@ -4,26 +4,26 @@ final class ExecutionRegistry {
 
   private var executions: [UInt64: EditorDocument] = [:]
   private var outputBuffers: [UInt64: (stdout: OutputBuffer, stderr: OutputBuffer)] = [:]
-  private var completions: [UInt64: [CheckedContinuation<Void, any Error>]] = [:]
+  private var completions: [UInt64: [CheckedContinuation<ExecutionResult, any Error>]] = [:]
 
   func register(_ doc: EditorDocument, executionId: UInt64) {
     executions[executionId] = doc
     outputBuffers[executionId] = (stdout: OutputBuffer(), stderr: OutputBuffer())
   }
 
-  func unregister(executionId: UInt64) {
+  func unregister(executionId: UInt64, result: ExecutionResult) {
     executions.removeValue(forKey: executionId)
     outputBuffers.removeValue(forKey: executionId)
     if let waiting = completions.removeValue(forKey: executionId) {
-      for continuation in waiting { continuation.resume(returning: ()) }
+      for continuation in waiting { continuation.resume(returning: result) }
     }
   }
 
-  func awaitCompletion(of executionId: UInt64) async throws {
+  func awaitCompletion(of executionId: UInt64) async throws -> ExecutionResult {
     try await withTaskCancellationHandler {
-      try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+      try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<ExecutionResult, any Error>) in
         if executions[executionId] == nil {
-          continuation.resume()
+          continuation.resume(returning: .completed)
         } else {
           completions[executionId, default: []].append(continuation)
         }
