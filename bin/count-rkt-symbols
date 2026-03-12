@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Count ASCII symbol frequency across all .rkt files under a directory.
+
+Used to decide the ordering of the input accessory bar in
+Ruckus/Views/CodeEditingView.swift.
+
+Usage: count-rkt-symbols <directory>
+"""
+
+import collections
+import subprocess
+import sys
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(f"usage: {sys.argv[0]} <directory>", file=sys.stderr)
+        sys.exit(1)
+    result = subprocess.run(
+        ["find", sys.argv[1],
+         "-name", "*.rkt", "-type", "f", "-print0"],
+        capture_output=True,
+    )
+    paths = result.stdout.split(b"\0")
+    # Count open brackets only; close brackets share their pair's count.
+    bracket_pairs = {"(": ")", "[": "]", "{": "}"}
+    close_brackets = set(bracket_pairs.values())
+    symbols = set('!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~') - close_brackets
+    counts: collections.Counter[str] = collections.Counter()
+    for path in paths:
+        if not path:
+            continue
+        try:
+            text = open(path, encoding="utf-8", errors="ignore").read()
+        except OSError:
+            continue
+        counts.update(c for c in text if c in symbols)
+
+    for char, count in counts.most_common():
+        if char in bracket_pairs:
+            print(f"{repr(char):6s} {count:>12,}  ('{bracket_pairs[char]}' same)")
+        else:
+            print(f"{repr(char):6s} {count:>12,}")
+
+
+if __name__ == "__main__":
+    main()

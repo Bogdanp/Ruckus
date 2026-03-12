@@ -13,15 +13,18 @@ struct CodeEditingView: UIViewRepresentable {
     Coordinator(document: document)
   }
 
-  private static let symbols: [String] = [
-    "-",
-    "(", ")",
-    "[", "]",
-    "{", "}",
-    "0", "1", "2", "3", "4",
-    "5", "6", "7", "8", "9"
+  // Sorted by frequency across .rkt files (see bin/count-rkt-symbols).
+  private static let frequentSymbols: [String] = [
+    "-", "(", ")", "\"", "\\", ";", "#", ".", "[", "]",
+    "?", "/", ":"
   ]
-  private static let accessoryBarHeight: CGFloat = 40
+  private static let extendedSymbols: [String] = [
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    "'", "=", ">", "_", "*", ",", "!",
+    "+", "%", "~", "`", "<", "@", "|", "$", "{", "}",
+    "^", "&"
+  ]
+  private static let accessoryBarHeight: CGFloat = 76
   private static let accessoryBarPadding: CGFloat = 4
 
   func makeUIView(context: Context) -> TextView {
@@ -128,14 +131,21 @@ struct CodeEditingView: UIViewRepresentable {
       ])
     }
 
-    let symbolsRow = makeSnippetRow(snippets: Self.symbols, for: textView)
-    bar.addSubview(symbolsRow)
+    let topRow = makeSnippetRow(snippets: Self.frequentSymbols, for: textView)
+    let bottomRow = makeSnippetRow(snippets: Self.extendedSymbols, for: textView)
 
+    let stack = UIStackView(arrangedSubviews: [topRow, bottomRow])
+    stack.axis = .vertical
+    stack.spacing = 4
+    stack.translatesAutoresizingMaskIntoConstraints = false
+    bar.addSubview(stack)
+
+    let pad = Self.accessoryBarPadding
     NSLayoutConstraint.activate([
-      symbolsRow.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: Self.accessoryBarPadding),
-      symbolsRow.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -Self.accessoryBarPadding),
-      symbolsRow.topAnchor.constraint(equalTo: bar.topAnchor, constant: Self.accessoryBarPadding),
-      symbolsRow.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -Self.accessoryBarPadding)
+      stack.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: pad),
+      stack.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -pad),
+      stack.topAnchor.constraint(equalTo: bar.topAnchor, constant: pad),
+      stack.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -pad)
     ])
 
     return bar
