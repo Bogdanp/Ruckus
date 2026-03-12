@@ -17,10 +17,7 @@ final class CompletionPopover: UIView, UITableViewDataSource, UITableViewDelegat
     super.init(frame: .zero)
     backgroundColor = .secondarySystemBackground
     layer.cornerRadius = 8
-    layer.shadowColor = UIColor.black.cgColor
-    layer.shadowOpacity = 0.2
-    layer.shadowOffset = CGSize(width: 0, height: 2)
-    layer.shadowRadius = 4
+    layer.applyPanelShadow()
     clipsToBounds = false
 
     tableView.dataSource = self

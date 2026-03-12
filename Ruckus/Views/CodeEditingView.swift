@@ -13,22 +13,16 @@ struct CodeEditingView: UIViewRepresentable {
     Coordinator(document: document)
   }
 
-  private static let symbols: [(label: String, text: String)] = [
-    ("-", "-"),
-    ("(", "("), (")", ")"),
-    ("[", "["), ("]", "]"),
-    ("{", "{"), ("}", "}"),
-    ("0", "0"), ("1", "1"), ("2", "2"), ("3", "3"), ("4", "4"),
-    ("5", "5"), ("6", "6"), ("7", "7"), ("8", "8"), ("9", "9")
+  private static let symbols: [String] = [
+    "-",
+    "(", ")",
+    "[", "]",
+    "{", "}",
+    "0", "1", "2", "3", "4",
+    "5", "6", "7", "8", "9"
   ]
-
-  private static let keywords: [(label: String, text: String)] = [
-    ("#lang", "#lang "),
-    ("define", "define "), ("let", "let "),
-    ("if", "if "), ("cond", "cond "),
-    ("case", "case "), ("match", "match "),
-    ("lambda", "lambda "), ("λ", "λ ")
-  ]
+  private static let accessoryBarHeight: CGFloat = 40
+  private static let accessoryBarPadding: CGFloat = 4
 
   func makeUIView(context: Context) -> TextView {
     let textView = TextView(frame: .zero)
@@ -64,7 +58,7 @@ struct CodeEditingView: UIViewRepresentable {
   }
 
   private func makeSnippetRow(
-    snippets: [(label: String, text: String)],
+    snippets: [String],
     for textView: TextView
   ) -> UIScrollView {
     let scrollView = UIScrollView()
@@ -78,29 +72,24 @@ struct CodeEditingView: UIViewRepresentable {
     stack.translatesAutoresizingMaskIntoConstraints = false
     scrollView.addSubview(stack)
 
-    for snippet in snippets {
-      let isKeyword = snippet.label.count > 1
+    for symbol in snippets {
       var config = UIButton.Configuration.plain()
-      config.title = snippet.label
+      config.title = symbol
       config.baseForegroundColor = settings.colorPalette?.textColor ?? .label
       config.titleTextAttributesTransformer = .init { attrs in
         var attrs = attrs
-        attrs.font = .monospacedSystemFont(ofSize: isKeyword ? 15 : 17, weight: .medium)
+        attrs.font = .monospacedSystemFont(ofSize: 17, weight: .medium)
         return attrs
       }
       config.contentInsets = NSDirectionalEdgeInsets(
-        top: 6, leading: isKeyword ? 10 : 12,
-        bottom: 6, trailing: isKeyword ? 10 : 12
+        top: 6, leading: 12,
+        bottom: 6, trailing: 12
       )
       config.background.cornerRadius = 6
       config.background.backgroundColor = settings.colorPalette?.gutterBackground ?? .systemBackground
       let button = UIButton(configuration: config)
-      button.layer.shadowColor = UIColor.black.cgColor
-      button.layer.shadowOpacity = 0.15
-      button.layer.shadowOffset = CGSize(width: 0, height: 1)
-      button.layer.shadowRadius = 0.5
-      let text = snippet.text
-      button.addAction(UIAction { _ in textView.insertText(text) }, for: .touchUpInside)
+      button.layer.applySoftShadow()
+      button.addAction(UIAction { _ in textView.insertText(symbol) }, for: .touchUpInside)
       stack.addArrangedSubview(button)
     }
 
@@ -117,7 +106,7 @@ struct CodeEditingView: UIViewRepresentable {
 
   private func makeInputAccessoryView(for textView: TextView) -> UIInputView {
     let bar = UIInputView(
-      frame: CGRect(x: 0, y: 0, width: 0, height: 76),
+      frame: CGRect(x: 0, y: 0, width: 0, height: Self.accessoryBarHeight),
       inputViewStyle: .keyboard
     )
     bar.allowsSelfSizing = true
@@ -140,19 +129,13 @@ struct CodeEditingView: UIViewRepresentable {
     }
 
     let symbolsRow = makeSnippetRow(snippets: Self.symbols, for: textView)
-    let keywordsRow = makeSnippetRow(snippets: Self.keywords, for: textView)
-
-    let outerStack = UIStackView(arrangedSubviews: [symbolsRow, keywordsRow])
-    outerStack.axis = .vertical
-    outerStack.spacing = 4
-    outerStack.translatesAutoresizingMaskIntoConstraints = false
-    bar.addSubview(outerStack)
+    bar.addSubview(symbolsRow)
 
     NSLayoutConstraint.activate([
-      outerStack.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 4),
-      outerStack.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -4),
-      outerStack.topAnchor.constraint(equalTo: bar.topAnchor, constant: 4),
-      outerStack.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -4)
+      symbolsRow.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: Self.accessoryBarPadding),
+      symbolsRow.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -Self.accessoryBarPadding),
+      symbolsRow.topAnchor.constraint(equalTo: bar.topAnchor, constant: Self.accessoryBarPadding),
+      symbolsRow.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -Self.accessoryBarPadding)
     ])
 
     return bar
