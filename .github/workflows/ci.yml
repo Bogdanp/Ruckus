@@ -121,7 +121,7 @@ jobs:
         run: ./bin/pbraco setup
       - name: Pin package catalogs
         run: |
-          ./bin/pbraco pkg config --user --set catalogs \
+          ./bin/pbraco pkg config --set catalogs \
              https://download.racket-lang.org/releases/9.1/catalog/ \
              https://pkgs.racket-lang.org \
              https://planet-compats.racket-lang.org
