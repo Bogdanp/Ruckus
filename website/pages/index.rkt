@@ -23,7 +23,7 @@
         (:p.tagline "Racket for iOS")
         (:p.hero-sub "Write, run, and explore Racket on your iPhone and iPad.")
         (:a.cta-button
-         ([:href "https://apps.apple.com/app/ruckus-racket-for-ios/id6760411372"])
+         ([:href "https://apps.apple.com/us/app/ruckus-racket-ide/id6760411372"])
          (:img.appstore-badge
           ([:src "https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"]
            [:alt "Download on the App Store"]))))
