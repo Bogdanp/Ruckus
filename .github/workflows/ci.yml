@@ -63,11 +63,6 @@ jobs:
         if: steps.cache-pb.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 --branch v9.1 https://github.com/racket/racket.git
-      - uses: Bogdanp/setup-racket@v1.14
-        if: steps.cache-pb.outputs.cache-hit != 'true'
-        with:
-          version: '9.1'
-          architecture: aarch64
       - uses: actions/download-artifact@v8
         if: steps.cache-pb.outputs.cache-hit != 'true'
         with:
@@ -104,7 +99,7 @@ jobs:
               --host=aarch64-apple-darwin \
               --enable-ios=iPhoneOS \
               --enable-pb \
-              --enable-racket="$(which racket)" \
+              --enable-racket=auto \
               --enable-libffi
           make
           make install
