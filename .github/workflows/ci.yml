@@ -49,16 +49,21 @@ jobs:
           name: libffi-ios
           path: libffi-ios.tar.gz
 
-  build-pb-racket:
+  build-core:
     needs: build-libffi
     runs-on: macos-14
     steps:
+      - uses: actions/checkout@v6
+      - uses: Bogdanp/setup-racket@v1.14
+        with:
+          version: '9.1'
+          architecture: aarch64
       - name: Cache PB Racket
         id: cache-pb
         uses: actions/cache@v5
         with:
-          path: pb-racket.tar.gz
-          key: pb-racket-v9.1-v2
+          path: racket
+          key: pb-racket-v9.1-v3
       - name: Clone Racket
         if: steps.cache-pb.outputs.cache-hit != 'true'
         run: |
@@ -103,33 +108,10 @@ jobs:
               --enable-libffi
           make
           make install
-      - name: Package PB Racket
-        if: steps.cache-pb.outputs.cache-hit != 'true'
-        run: tar czf pb-racket.tar.gz racket/
-      - uses: actions/upload-artifact@v7
-        with:
-          name: pb-racket
-          path: pb-racket.tar.gz
-
-  build-core:
-    needs: build-pb-racket
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v6
-      - uses: Bogdanp/setup-racket@v1.14
-        with:
-          version: '9.1'
-          architecture: aarch64
-      - uses: actions/download-artifact@v8
-        with:
-          name: pb-racket
-          path: /tmp
-      - name: Unpack PB Racket
-        run: |
-          tar xzf /tmp/pb-racket.tar.gz -C /tmp
-          echo "PBRACKET_ROOT=/tmp/racket" >> "$GITHUB_ENV"
+      - name: Set PBRACKET_ROOT
+        run: echo "PBRACKET_ROOT=$GITHUB_WORKSPACE/racket" >> "$GITHUB_ENV"
       - name: List PB Racket contents
-        run: find /tmp/racket/racket/ -maxdepth 2
+        run: find racket/racket/ -maxdepth 2
       - name: Setup PB Racket
         run: ./bin/pbraco setup
       - name: Pin package catalogs
