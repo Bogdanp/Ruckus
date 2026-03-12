@@ -100,6 +100,10 @@ jobs:
           mkdir -p /tmp/pb-racket
           tar xzf /tmp/pb-racket.tar.gz -C /tmp/pb-racket
           echo "PBRACKET_ROOT=/tmp/pb-racket" >> "$GITHUB_ENV"
+      - name: List PB Racket contents
+        run: ls -la /tmp/pb-racket/racket/
+      - name: Setup PB Racket
+        run: ./bin/pbraco setup
       - name: Cache Noise
         uses: actions/cache@v5
         with:
