@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SwiftLint
+        run: brew install swiftlint
+      - name: Lint
+        run: swiftlint lint --strict
+
+  build-pb-racket:
+    runs-on: macos-14
+    steps:
+      - name: Clone Racket
+        run: |
+          git clone --depth 1 --branch v9.1 https://github.com/racket/racket.git
+      - name: Build libffi
+        run: |
+          set -euxo pipefail
+          brew install automake libtool
+          git clone https://github.com/libffi/libffi
+          cd libffi
+          git checkout v3.4.6
+          ./autogen.sh
+          python3 generate-darwin-source-and-headers.py --only-ios
+          xcodebuild \
+            -configuration release \
+            -target libffi-iOS \
+            -scheme libffi-iOS \
+            -sdk "$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk" \
+            -derivedDataPath dist \
+            IPHONEOS_DEPLOYMENT_TARGET=12
+      - name: Build PB Racket
+        working-directory: racket
+        run: |
+          set -euxo pipefail
+          make fetch-pb
+          mkdir -p racket/src/build
+          cd racket/src/build
+          cat >libffi.pc <<EOF
+          prefix=${GITHUB_WORKSPACE}/libffi/dist/Build/Products/Release-iphoneos
+          exec_prefix=\${prefix}
+          libdir=\${exec_prefix}
+          toolexeclibdir=\${libdir}
+          includedir=\${prefix}/include/ffi
+
+          Name: libffi
+          Description: Library supporting Foreign Function Interfaces
+          Version: 3.4.6
+          Libs: -L\${toolexeclibdir} -lffi
+          Cflags: -I\${includedir}
+          EOF
+          env PKG_CONFIG_PATH="$(pwd)" \
+            ../configure \
+              --host=aarch64-apple-darwin \
+              --enable-ios=iPhoneOS \
+              --enable-pb \
+              --enable-racket=auto \
+              --enable-libffi
+          make
+          make install
+      - name: Upload PB Racket
+        run: tar czf pb-racket.tar.gz -C racket racket/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pb-racket
+          path: pb-racket.tar.gz
+
+  build-core:
+    needs: build-pb-racket
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: pb-racket
+          path: /tmp
+      - name: Unpack PB Racket
+        run: |
+          mkdir -p /tmp/pb-racket
+          tar xzf /tmp/pb-racket.tar.gz -C /tmp/pb-racket
+          echo "PBRACKET_ROOT=/tmp/pb-racket" >> "$GITHUB_ENV"
+      - name: Add PB Racket to PATH
+        run: echo "/tmp/pb-racket/racket/bin" >> "$GITHUB_PATH"
+      - name: Cache Noise
+        uses: actions/cache@v4
+        with:
+          path: ../Noise
+          key: noise-racket-9.1
+      - name: Clone Noise
+        run: |
+          if [ ! -d ../Noise/.git ]; then
+            git clone --branch racket-9.1 https://github.com/Bogdanp/Noise.git ../Noise
+          fi
+      - name: Install Noise packages
+        run: ./bin/pbraco pkg install --auto ../Noise/noise-serde
+      - name: Install ruckus-core
+        run: ./bin/pbraco pkg install --auto ./ruckus-core
+      - name: Build core
+        run: make
+      - name: Prepare distribution
+        run: ./bin/prepare-distribution
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruckus-core
+          path: |
+            Ruckus/res/
+            Ruckus/Backend.swift
+            Ruckus/racket/
+
+  build-test:
+    needs: build-core
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ruckus-core
+          path: .
+      - name: Cache Noise
+        uses: actions/cache@v4
+        with:
+          path: ../Noise
+          key: noise-racket-9.1
+      - name: Clone Noise
+        run: |
+          if [ ! -d ../Noise/.git ]; then
+            git clone --branch racket-9.1 https://github.com/Bogdanp/Noise.git ../Noise
+          fi
+      - name: Create Local.xcconfig
+        run: echo 'DEVELOPMENT_TEAM = DUMMY' > xcconfigs/Local.xcconfig
+      - name: Install Tuist
+        run: brew install tuist
+      - name: Generate project
+        run: tuist install && tuist generate --no-open
+      - name: Build
+        run: |
+          xcodebuild build -workspace Ruckus.xcworkspace -scheme Ruckus \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO | xcpretty
+      - name: Test
+        run: |
+          xcodebuild test -workspace Ruckus.xcworkspace -scheme Ruckus \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' | xcpretty
