@@ -47,7 +47,12 @@ Execute a task from the `docs/tasks/` directory.
    If tests are relevant (e.g. indenter changes), run the test suite too.
    Fix any issues before proceeding.
 
-7. **Delete the task file.** Once the fix is verified, delete the task
+7. **QA in the simulator.** After the build succeeds, run the `/qa`
+   skill to install the app in the iOS Simulator and visually validate
+   that the change works as expected. If QA reveals issues, fix them
+   and re-verify before proceeding.
+
+8. **Delete the task file.** Once the fix is verified, delete the task
    markdown from `docs/tasks/`.
 
 ## If the user just says `/task` with no argument
