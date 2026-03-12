@@ -103,11 +103,11 @@ struct RacketIndenterTests {
   }
 
   @Test func provide() {
-    #expect(indent("(provide") == "  ")
+    #expect(indent("(provide") == " ")
   }
 
   @Test func require() {
-    #expect(indent("(require") == "  ")
+    #expect(indent("(require") == " ")
   }
 
   // MARK: - Multi-symbol alignment
