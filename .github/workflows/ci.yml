@@ -105,6 +105,14 @@ jobs:
         run: ls -la /tmp/pb-racket/racket/
       - name: Setup PB Racket
         run: ./bin/pbraco setup
+      - name: Pin package catalogs
+        run: |
+          ./bin/pbraco pkg config \
+            --user \
+            --set catalogs \
+            "$(./bin/pbraco pkg config catalogs | head -1)" \
+            https://pkgs.racket-lang.org/pkgs-all?version=9.1
+          ./bin/pbraco pkg config catalogs
       - name: Cache Noise
         uses: actions/cache@v5
         with:
