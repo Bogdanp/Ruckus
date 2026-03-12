@@ -18,10 +18,18 @@ jobs:
   build-pb-racket:
     runs-on: macos-14
     steps:
+      - name: Cache PB Racket
+        id: cache-pb
+        uses: actions/cache@v4
+        with:
+          path: pb-racket.tar.gz
+          key: pb-racket-v9.1
       - name: Clone Racket
+        if: steps.cache-pb.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 --branch v9.1 https://github.com/racket/racket.git
       - name: Build libffi
+        if: steps.cache-pb.outputs.cache-hit != 'true'
         run: |
           set -euxo pipefail
           brew install automake libtool
@@ -38,6 +46,7 @@ jobs:
             -derivedDataPath dist \
             IPHONEOS_DEPLOYMENT_TARGET=12
       - name: Build PB Racket
+        if: steps.cache-pb.outputs.cache-hit != 'true'
         working-directory: racket
         run: |
           set -euxo pipefail
@@ -66,7 +75,8 @@ jobs:
               --enable-libffi
           make
           make install
-      - name: Upload PB Racket
+      - name: Package PB Racket
+        if: steps.cache-pb.outputs.cache-hit != 'true'
         run: tar czf pb-racket.tar.gz -C racket racket/
       - uses: actions/upload-artifact@v4
         with:
