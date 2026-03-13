@@ -132,6 +132,88 @@ struct CodeEditingViewTests {
     #expect(result == true)
   }
 
+  // MARK: - Auto-pair brackets
+
+  @Test(arguments: [
+    ("(", "()"),
+    ("[", "[]"),
+    ("{", "{}"),
+    ("\"", "\"\"")
+  ])
+  func autoPairInsertsCloser(opener: String, expected: String) {
+    let doc = EditorDocument(code: "")
+    let coord = makeCoordinator(document: doc)
+    let textView = makeTextView(text: "")
+    coord.documentObserver.currentDocument = doc
+
+    let result = coord.textView(
+      textView,
+      shouldChangeTextIn: NSRange(location: 0, length: 0),
+      replacementText: opener
+    )
+
+    #expect(result == false)
+    #expect(textView.text == expected)
+    #expect(textView.selectedRange == NSRange(location: 1, length: 0))
+  }
+
+  @Test
+  func skipOverClosingParen() {
+    let source = "()"
+    let doc = EditorDocument(code: source)
+    let coord = makeCoordinator(document: doc)
+    let textView = makeTextView(text: source)
+    coord.documentObserver.currentDocument = doc
+
+    // Cursor between parens, typing ')' should skip over.
+    let result = coord.textView(
+      textView,
+      shouldChangeTextIn: NSRange(location: 1, length: 0),
+      replacementText: ")"
+    )
+
+    #expect(result == false)
+    #expect(textView.text == "()")
+    #expect(textView.selectedRange == NSRange(location: 2, length: 0))
+  }
+
+  @Test
+  func pairedDeleteRemovesBothBrackets() {
+    let source = "()"
+    let doc = EditorDocument(code: source)
+    let coord = makeCoordinator(document: doc)
+    let textView = makeTextView(text: source)
+    coord.documentObserver.currentDocument = doc
+
+    // Simulate backspace deleting '(' when cursor is between the pair.
+    let result = coord.textView(
+      textView,
+      shouldChangeTextIn: NSRange(location: 0, length: 1),
+      replacementText: ""
+    )
+
+    #expect(result == false)
+    #expect(textView.text == "")
+  }
+
+  @Test
+  func backspaceWithoutPairPassesThrough() {
+    let source = "(a)"
+    let doc = EditorDocument(code: source)
+    let coord = makeCoordinator(document: doc)
+    let textView = makeTextView(text: source)
+    coord.documentObserver.currentDocument = doc
+
+    // Deleting '(' when next char is 'a', not the closer — should pass through.
+    let result = coord.textView(
+      textView,
+      shouldChangeTextIn: NSRange(location: 0, length: 1),
+      replacementText: ""
+    )
+
+    #expect(result == true)
+  }
+
   // MARK: - Rainbow bracket highlights
 
   @Test

@@ -145,6 +145,11 @@ struct CodeEditingView: UIViewRepresentable {
     private var didType = false
     private let indenter = RacketIndenter()
 
+    private static let autoPairs: [String: String] = [
+      "(": ")", "[": "]", "{": "}", "\"": "\""
+    ]
+    private static let closers: Set<String> = Set(autoPairs.values)
+
     init(document: EditorDocument) {
       self.documentObserver.currentDocument = document
     }
@@ -173,6 +178,46 @@ struct CodeEditingView: UIViewRepresentable {
       shouldChangeTextIn range: NSRange,
       replacementText text: String
     ) -> Bool {
+      // Paired delete: backspace between matched pair removes both.
+      if text.isEmpty, range.length == 1 {
+        let source = textView.text
+        let loc = range.location
+        let nsSource = source as NSString
+        if loc + 1 < nsSource.length {
+          let deleted = nsSource.substring(with: NSRange(location: loc, length: 1))
+          let next = nsSource.substring(with: NSRange(location: loc + 1, length: 1))
+          if Self.autoPairs[deleted] == next {
+            // Delete both the opener and its closer.
+            let pairRange = NSRange(location: loc, length: 2)
+            textView.selectedRange = pairRange
+            textView.insertText("")
+            return false
+          }
+        }
+      }
+
+      // Skip-over: typing a closer that already follows the cursor.
+      if range.length == 0, Self.closers.contains(text) {
+        let source = textView.text
+        let nsSource = source as NSString
+        if range.location < nsSource.length {
+          let next = nsSource.substring(with: NSRange(location: range.location, length: 1))
+          if next == text {
+            textView.selectedRange = NSRange(location: range.location + 1, length: 0)
+            return false
+          }
+        }
+      }
+
+      // Auto-pair: insert matching closer after opener.
+      if range.length == 0, let closer = Self.autoPairs[text] {
+        textView.insertText(text + closer)
+        let cursor = range.location + text.utf16.count
+        textView.selectedRange = NSRange(location: cursor, length: 0)
+        return false
+      }
+
+      // Auto-indent on newline.
       guard text == "\n" || text == "\r\n" || text == "\r" else {
         return true
       }

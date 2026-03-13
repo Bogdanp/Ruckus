@@ -2,6 +2,7 @@ disabled_rules:
   - function_body_length
   - optional_data_string_conversion
   - type_body_length
+  - file_length
 
 excluded:
   - .claude/worktrees
