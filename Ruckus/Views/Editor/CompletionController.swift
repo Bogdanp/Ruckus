@@ -21,6 +21,10 @@ final class CompletionController {
     popover?.updateFont(font)
   }
 
+  func updatePalette(_ palette: ColorPalette?) {
+    popover?.updatePalette(palette)
+  }
+
   func attachIfNeeded(to window: UIWindow) {
     guard let popover, popover.superview == nil else { return }
     window.addSubview(popover)

@@ -39,6 +39,7 @@ struct CodeEditingView: UIViewRepresentable {
       textView.insertText(suffix)
     }
     coordinator.completionController.setPopover(popover)
+    coordinator.completionController.updatePalette(settings.colorPalette)
     coordinator.currentFont = settings.font
     coordinator.currentThemeName = settings.themeName
     coordinator.highlightController.applyColors(from: settings)
@@ -87,6 +88,7 @@ struct CodeEditingView: UIViewRepresentable {
       )
       textView.reloadInputViews()
       coordinator.completionController.updateFont(font)
+      coordinator.completionController.updatePalette(settings.colorPalette)
       coordinator.currentFont = font
       coordinator.currentThemeName = settings.themeName
     }

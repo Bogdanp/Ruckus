@@ -9,6 +9,8 @@ final class CompletionPopover: UIView, UITableViewDataSource, UITableViewDelegat
   private static let rowHeight: CGFloat = 32
   private static let maxVisible = 5
   private var completionFont: UIFont
+  private var textColor: UIColor = .label
+  private var highlightColor: UIColor = .systemBlue
 
   init(font: UIFont = .monospacedSystemFont(ofSize: 14, weight: .regular),
        insertAction: @escaping (String) -> Void) {
@@ -50,6 +52,13 @@ final class CompletionPopover: UIView, UITableViewDataSource, UITableViewDelegat
     completionFont = font
   }
 
+  func updatePalette(_ palette: ColorPalette?) {
+    textColor = palette?.textColor ?? .label
+    highlightColor = palette?.syntaxColors[ColorPalette.Highlight.keyword] ?? .systemBlue
+    backgroundColor = palette?.gutterBackground ?? .secondarySystemBackground
+    if !isHidden { tableView.reloadData() }
+  }
+
   func update(items: [String], prefix: String) {
     self.items = items
     self.prefix = prefix
@@ -81,10 +90,10 @@ final class CompletionPopover: UIView, UITableViewDataSource, UITableViewDelegat
     let item = items[indexPath.row]
     let attributed = NSMutableAttributedString(
       string: item,
-      attributes: [.font: completionFont, .foregroundColor: UIColor.label]
+      attributes: [.font: completionFont, .foregroundColor: textColor]
     )
     let matchRange = NSRange(location: 0, length: (prefix as NSString).length)
-    attributed.addAttribute(.foregroundColor, value: UIColor.systemBlue, range: matchRange)
+    attributed.addAttribute(.foregroundColor, value: highlightColor, range: matchRange)
     cell.textLabel?.attributedText = attributed
     cell.backgroundColor = .clear
     return cell
