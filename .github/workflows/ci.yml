@@ -5,6 +5,10 @@ on:
     branches: [master]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
 env:
   CI_LIBFFI_VERSION: '3.4.6'
   CI_NOISE_BRANCH: racket-9.1-2
@@ -13,6 +17,7 @@ env:
 jobs:
   lint:
     runs-on: macos-15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - name: Install SwiftLint
@@ -22,6 +27,7 @@ jobs:
 
   build-libffi:
     runs-on: macos-14
+    timeout-minutes: 30
     steps:
       - name: Cache libffi
         id: cache-libffi
@@ -56,6 +62,7 @@ jobs:
 
   build-noise:
     runs-on: macos-15
+    timeout-minutes: 15
     steps:
       - name: Cache Noise
         id: cache-noise
@@ -74,19 +81,11 @@ jobs:
           name: noise
           path: Noise
 
-  build-core:
-    needs: [build-libffi, build-noise]
+  build-pbracket:
+    needs: build-libffi
     runs-on: macos-14
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v6
-      - uses: Bogdanp/setup-racket@v1.14
-        with:
-          version: ${{ env.CI_RACKET_VERSION }}
-          architecture: aarch64
-      - uses: actions/download-artifact@v8
-        with:
-          name: noise
-          path: ../Noise
       - name: Cache PB Racket
         id: cache-pb
         uses: actions/cache@v5
@@ -142,10 +141,35 @@ jobs:
               --enable-strip
           make
           make install
+      - name: Package PB Racket
+        run: tar czf pbracket.tar.gz racket
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pbracket
+          path: pbracket.tar.gz
+
+  build-core:
+    needs: [build-pbracket, build-noise]
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: Bogdanp/setup-racket@v1.14
+        with:
+          version: ${{ env.CI_RACKET_VERSION }}
+          architecture: aarch64
+      - uses: actions/download-artifact@v8
+        with:
+          name: noise
+          path: ../Noise
+      - uses: actions/download-artifact@v8
+        with:
+          name: pbracket
+          path: /tmp
+      - name: Unpack PB Racket
+        run: tar xzf /tmp/pbracket.tar.gz
       - name: Set PBRACKET_ROOT
         run: echo "PBRACKET_ROOT=$GITHUB_WORKSPACE/racket" >> "$GITHUB_ENV"
-      - name: List PB Racket contents
-        run: find racket/racket -maxdepth 2
       - name: Setup PB Racket
         run: ./bin/pbraco setup
       - name: Pin package catalogs
@@ -174,6 +198,7 @@ jobs:
   build-test:
     needs: [build-core, build-noise]
     runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v8
