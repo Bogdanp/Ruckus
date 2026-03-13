@@ -171,6 +171,8 @@ jobs:
           if [ ! -d ../Noise/.git ]; then
             git clone --branch racket-9.1-2 https://github.com/Bogdanp/Noise.git ../Noise
           fi
+      - name: Build Noise xcframeworks
+        run: make -C ../Noise
       - name: Create Local.xcconfig
         run: echo 'DEVELOPMENT_TEAM = DUMMY' > xcconfigs/Local.xcconfig
       - name: Install Tuist
