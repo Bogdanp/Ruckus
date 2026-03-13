@@ -5,6 +5,11 @@ on:
     branches: [master]
   pull_request:
 
+env:
+  CI_LIBFFI_VERSION: '3.4.6'
+  CI_NOISE_BRANCH: racket-9.1-2
+  CI_RACKET_VERSION: '9.1'
+
 jobs:
   lint:
     runs-on: macos-15
@@ -23,7 +28,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: libffi-ios.tar.gz
-          key: libffi-v3.4.6-ios
+          key: libffi-v${{ env.CI_LIBFFI_VERSION }}-ios
       - name: Build libffi
         if: steps.cache-libffi.outputs.cache-hit != 'true'
         run: |
@@ -31,7 +36,7 @@ jobs:
           brew install automake libtool
           git clone https://github.com/libffi/libffi
           cd libffi
-          git checkout v3.4.6
+          git checkout "v${CI_LIBFFI_VERSION}"
           ./autogen.sh
           python3 generate-darwin-source-and-headers.py --only-ios
           xcodebuild \
@@ -57,10 +62,10 @@ jobs:
         uses: actions/cache@v5
         with:
           path: Noise
-          key: noise-racket-9.1-2
+          key: noise-${{ env.CI_NOISE_BRANCH }}
       - name: Clone Noise
         if: steps.cache-noise.outputs.cache-hit != 'true'
-        run: git clone --branch racket-9.1-2 https://github.com/Bogdanp/Noise.git Noise
+        run: git clone --branch "$CI_NOISE_BRANCH" https://github.com/Bogdanp/Noise.git Noise
       - name: Build Noise
         if: steps.cache-noise.outputs.cache-hit != 'true'
         run: make -C Noise RacketCS-ios.xcframework RacketCS-macos.xcframework
@@ -76,7 +81,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: Bogdanp/setup-racket@v1.14
         with:
-          version: '9.1'
+          version: ${{ env.CI_RACKET_VERSION }}
           architecture: aarch64
       - uses: actions/download-artifact@v8
         with:
@@ -87,11 +92,11 @@ jobs:
         uses: actions/cache@v5
         with:
           path: racket
-          key: pb-racket-v9.1-v3
+          key: pb-racket-v${{ env.CI_RACKET_VERSION }}-v3
       - name: Clone Racket
         if: steps.cache-pb.outputs.cache-hit != 'true'
         run: |
-          git clone --depth 1 --branch v9.1 https://github.com/racket/racket.git
+          git clone --depth 1 --branch "v${CI_RACKET_VERSION}" https://github.com/racket/racket.git
       - uses: actions/download-artifact@v8
         if: steps.cache-pb.outputs.cache-hit != 'true'
         with:
@@ -122,7 +127,7 @@ jobs:
 
           Name: libffi
           Description: Library supporting Foreign Function Interfaces
-          Version: 3.4.6
+          Version: ${CI_LIBFFI_VERSION}
           Libs: -L\${toolexeclibdir} -lffi
           Cflags: -I\${includedir}
           EOF
@@ -146,7 +151,7 @@ jobs:
       - name: Pin package catalogs
         run: |
           ./bin/pbraco pkg config --set catalogs \
-             https://download.racket-lang.org/releases/9.1/catalog/ \
+             "https://download.racket-lang.org/releases/${CI_RACKET_VERSION}/catalog/" \
              https://pkgs.racket-lang.org \
              https://planet-compats.racket-lang.org
           ./bin/pbraco pkg config catalogs
