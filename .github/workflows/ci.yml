@@ -49,8 +49,28 @@ jobs:
           name: libffi-ios
           path: libffi-ios.tar.gz
 
+  build-noise:
+    runs-on: macos-15
+    steps:
+      - name: Cache Noise
+        id: cache-noise
+        uses: actions/cache@v5
+        with:
+          path: Noise
+          key: noise-racket-9.1-2
+      - name: Clone Noise
+        if: steps.cache-noise.outputs.cache-hit != 'true'
+        run: git clone --branch racket-9.1-2 https://github.com/Bogdanp/Noise.git Noise
+      - name: Build Noise
+        if: steps.cache-noise.outputs.cache-hit != 'true'
+        run: make -C Noise RacketCS-ios.xcframework RacketCS-macos.xcframework
+      - uses: actions/upload-artifact@v7
+        with:
+          name: noise
+          path: Noise
+
   build-core:
-    needs: build-libffi
+    needs: [build-libffi, build-noise]
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v6
@@ -58,8 +78,10 @@ jobs:
         with:
           version: '9.1'
           architecture: aarch64
-      - name: Clone Noise
-        run: git clone --branch racket-9.1-2 https://github.com/Bogdanp/Noise.git ../Noise
+      - uses: actions/download-artifact@v8
+        with:
+          name: noise
+          path: ../Noise
       - name: Cache PB Racket
         id: cache-pb
         uses: actions/cache@v5
@@ -145,7 +167,7 @@ jobs:
             Ruckus/racket/
 
   build-test:
-    needs: build-core
+    needs: [build-core, build-noise]
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
@@ -153,14 +175,10 @@ jobs:
         with:
           name: ruckus-core
           path: .
-      - uses: Bogdanp/setup-racket@v1.14
+      - uses: actions/download-artifact@v8
         with:
-          version: '9.1'
-          architecture: aarch64
-      - name: Clone Noise
-        run: git clone --branch racket-9.1-2 https://github.com/Bogdanp/Noise.git ../Noise
-      - name: Build Noise xcframeworks
-        run: make -C ../Noise RacketCS-ios.xcframework RacketCS-macos.xcframework
+          name: noise
+          path: ../Noise
       - name: Create Local.xcconfig
         run: echo 'DEVELOPMENT_TEAM = DUMMY' > xcconfigs/Local.xcconfig
       - name: Install Tuist
