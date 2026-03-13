@@ -154,7 +154,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-      - uses: Bogdanp/setup-racket@v1.14
+      - uses: Bogdanp/setup-racket@v1.15
         with:
           version: ${{ env.CI_RACKET_VERSION }}
           architecture: aarch64
