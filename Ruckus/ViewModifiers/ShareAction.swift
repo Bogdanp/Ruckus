@@ -3,17 +3,13 @@ import SwiftUI
 struct ShareAction: ViewModifier {
   @Environment(EditorStore.self) private var store
   @State private var shareFileURL: IdentifiableURL?
+  @State private var shareTempDir: URL?
   @State private var shareError: String?
 
   func body(content: Content) -> some View {
     content
-      .sheet(item: $shareFileURL) { item in
+      .sheet(item: $shareFileURL, onDismiss: cleanupShareFile) { item in
         ActivitySheet(items: [item.url])
-      }
-      .onChange(of: shareFileURL?.url) { oldURL, _ in
-        if let oldURL {
-          try? FileManager.default.removeItem(at: oldURL.deletingLastPathComponent())
-        }
       }
       .alert("Share Failed", isPresented: Binding(
         get: { shareError != nil },
@@ -26,6 +22,12 @@ struct ShareAction: ViewModifier {
       .environment(\.shareAction, ShareActionHandler(share: share))
   }
 
+  private func cleanupShareFile() {
+    guard let dir = shareTempDir else { return }
+    shareTempDir = nil
+    try? FileManager.default.removeItem(at: dir)
+  }
+
   private func share() {
     guard let document = store.activeDocument else { return }
     let filename = document.title.hasSuffix(".rkt") ? document.title : document.title + ".rkt"
@@ -34,6 +36,7 @@ struct ShareAction: ViewModifier {
       try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
       let fileURL = tempDir.appendingPathComponent(filename)
       try document.code.write(to: fileURL, atomically: true, encoding: .utf8)
+      shareTempDir = tempDir
       shareFileURL = IdentifiableURL(url: fileURL)
     } catch {
       shareError = error.localizedDescription
