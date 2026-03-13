@@ -57,5 +57,8 @@ Execute a task from the `docs/tasks/` directory.
 
 ## If the user just says `/task` with no argument
 
-List all task files in `docs/tasks/` with their titles so the operator can
-pick one.
+List all task files with their titles so the operator can pick one.
+Use the **Glob** tool with pattern `docs/tasks/*.md` to find task files, then
+**Read** the first 2 lines of each file to extract the title. Do NOT use Bash
+commands (`ls`, `head`, `for` loops, etc.) for listing — Glob and Read do not
+require user approval.
