@@ -128,8 +128,6 @@ jobs:
              https://pkgs.racket-lang.org \
              https://planet-compats.racket-lang.org
           ./bin/pbraco pkg config catalogs
-      - name: Install Noise packages
-        run:
       - name: Install ruckus-core
         run: |
           ./bin/pbraco pkg install --auto --skip-installed ../Noise/Racket/noise-serde-lib
@@ -162,7 +160,7 @@ jobs:
       - name: Clone Noise
         run: git clone --branch racket-9.1-2 https://github.com/Bogdanp/Noise.git ../Noise
       - name: Build Noise xcframeworks
-        run: make -C ../Noise
+        run: make -C ../Noise RacketCS-ios.xcframework RacketCS-macos.xcframework
       - name: Create Local.xcconfig
         run: echo 'DEVELOPMENT_TEAM = DUMMY' > xcconfigs/Local.xcconfig
       - name: Install Tuist
