@@ -58,6 +58,16 @@ jobs:
         with:
           version: '9.1'
           architecture: aarch64
+      - name: Cache Noise
+        uses: actions/cache@v5
+        with:
+          path: ../Noise
+          key: noise-racket-9.1
+      - name: Clone Noise
+        run: |
+          if [ ! -d ../Noise/.git ]; then
+            git clone --branch racket-9.1-2 https://github.com/Bogdanp/Noise.git ../Noise
+          fi
       - name: Cache PB Racket
         id: cache-pb
         uses: actions/cache@v5
@@ -126,16 +136,6 @@ jobs:
              https://pkgs.racket-lang.org \
              https://planet-compats.racket-lang.org
           ./bin/pbraco pkg config catalogs
-      - name: Cache Noise
-        uses: actions/cache@v5
-        with:
-          path: ../Noise
-          key: noise-racket-9.1
-      - name: Clone Noise
-        run: |
-          if [ ! -d ../Noise/.git ]; then
-            git clone --branch racket-9.1-2 https://github.com/Bogdanp/Noise.git ../Noise
-          fi
       - name: Install Noise packages
         run: ./bin/pbraco pkg install --auto --skip-installed ../Noise/Racket/noise-serde-lib
       - name: Install ruckus-core
