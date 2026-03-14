@@ -69,7 +69,9 @@
           (read-syntax #f in)))
       #;expected-module-sym 'ignored
       #;source-v #f))
-    (namespace-require document-spec)
+    (let/ec exit
+      (parameterize ([exit-handler exit])
+        (namespace-require document-spec)))
     (namespace-mapped-symbols (module->namespace document-spec))))
 
 (define-actor (executor)
