@@ -7,6 +7,7 @@ class EditorStore {
 
   private static let openDocumentPathsKey = "openDocumentPaths"
   private static let activeDocumentPathKey = "activeDocumentPath"
+  private static let hasInstalledExamplesKey = "hasInstalledExamples"
 
   private var saveTask: Task<Void, Never>?
   private(set) var isLoading = true
@@ -191,6 +192,19 @@ class EditorStore {
 
   func restoreSession() async {
     defer { isLoading = false }
+    #if DEBUG
+    let shouldInstallExamples = true
+    #else
+    let shouldInstallExamples = !UserDefaults.standard.bool(forKey: Self.hasInstalledExamplesKey)
+    #endif
+    if shouldInstallExamples {
+      do {
+        try await Backend.shared.installExamples()
+      } catch {
+        Logger.backend.error("\(#function): failed to install examples: \(error)")
+      }
+      UserDefaults.standard.set(true, forKey: Self.hasInstalledExamplesKey)
+    }
     guard let relativePaths = UserDefaults.standard.stringArray(forKey: Self.openDocumentPathsKey),
           !relativePaths.isEmpty else {
       newDocument()
