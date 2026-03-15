@@ -288,20 +288,26 @@ class EditorStore {
 
   private func saveSession() {
     guard !isLoading else { return }
-    Task { await saveSessionAsync() }
+    Task {
+      do {
+        try await saveSessionAsync()
+      } catch {
+        Logger.session.warning("\(#function): failed to save session: \(error)")
+      }
+    }
   }
 
-  private func saveSessionAsync() async {
+  private func saveSessionAsync() async throws {
+    let root = try await Backend.shared.getRootPath()
     var relativePaths = [String]()
     for doc in documents {
-      if let rel = await relativePath(for: doc) {
-        relativePaths.append(rel)
-      }
+      guard let path = doc.path, path.hasPrefix(root) else { continue }
+      relativePaths.append(Self.relativePath(path, relativeTo: root))
     }
     UserDefaults.standard.set(relativePaths, forKey: Self.openDocumentPathsKey)
     var activeRelative: String?
-    if let doc = activeDocument {
-      activeRelative = await relativePath(for: doc)
+    if let doc = activeDocument, let path = doc.path, path.hasPrefix(root) {
+      activeRelative = Self.relativePath(path, relativeTo: root)
     }
     UserDefaults.standard.set(activeRelative, forKey: Self.activeDocumentPathKey)
   }
