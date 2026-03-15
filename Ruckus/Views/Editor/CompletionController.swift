@@ -42,9 +42,15 @@ final class CompletionController {
     if prefix.isEmpty {
       filtered = []
     } else {
-      filtered = allCompletions.filter {
-        $0.hasPrefix(prefix) && $0 != prefix
+      var seen = Set<String>()
+      var results = [String]()
+      for item in allCompletions where item.hasPrefix(prefix) && item != prefix {
+        if seen.insert(item).inserted { results.append(item) }
       }
+      for item in scanIdentifiers(in: text) where item.hasPrefix(prefix) && item != prefix {
+        if seen.insert(item).inserted { results.append(item) }
+      }
+      filtered = results
     }
     guard !filtered.isEmpty else {
       popover.dismiss()
@@ -74,6 +80,27 @@ final class CompletionController {
 
     popover.frame.origin = CGPoint(x: originX, y: max(4, originY))
     popover.frame.size.width = min(popover.frame.width, max(0, availableWidth))
+  }
+
+  func scanIdentifiers(in text: String) -> Set<String> {
+    var results = Set<String>()
+    var tokenStart: String.Index?
+    for idx in text.indices {
+      if let scalar = text[idx].unicodeScalars.first, Self.wordChars.contains(scalar) {
+        if tokenStart == nil { tokenStart = idx }
+      } else {
+        if let start = tokenStart {
+          let token = String(text[start..<idx])
+          if token.count >= 2 { results.insert(token) }
+          tokenStart = nil
+        }
+      }
+    }
+    if let start = tokenStart {
+      let token = String(text[start...])
+      if token.count >= 2 { results.insert(token) }
+    }
+    return results
   }
 
   private func currentWordPrefix(text: String, in textView: TextView) -> String {
