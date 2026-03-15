@@ -3,6 +3,7 @@
 (require actor
          noise/backend
          noise/serde
+         racket/pretty
          struct-define
          syntax/modread
          "resolver.rkt")
@@ -70,9 +71,15 @@
       #;expected-module-sym 'ignored
       #;source-v #f))
     (let/ec exit
-      (parameterize ([exit-handler exit])
+      (parameterize ([current-print pretty-print*]
+                     [exit-handler exit])
         (namespace-require document-spec)))
     (namespace-mapped-symbols (module->namespace document-spec))))
+
+(define (pretty-print* v)
+  (unless (void? v)
+    (parameterize ([pretty-print-columns 80])
+      (pretty-print v))))
 
 (define-actor (executor)
   #:state (make-state)
