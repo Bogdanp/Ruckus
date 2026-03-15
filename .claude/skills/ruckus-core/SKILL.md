@@ -26,6 +26,10 @@ Flow: `ruckus-core/*.rkt` → `make` → `Backend.swift`
 2. Run `make` to regenerate `Backend.swift` and recompile bytecode
 3. Call `Backend.shared.name()` from Swift
 
+## Naming Conventions
+
+- Racket module names should be **singular** (e.g. `example.rkt`, not `examples.rkt`).
+
 ## Key Files
 
 - `ruckus-core/main.rkt` — Racket backend: RPC definitions and server entry point
