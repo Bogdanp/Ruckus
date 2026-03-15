@@ -91,7 +91,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: racket
-          key: pb-racket-v${{ env.CI_RACKET_VERSION }}-v3
+          key: pb-racket-v${{ env.CI_RACKET_VERSION }}-v4
       - name: Clone Racket
         if: steps.cache-pb.outputs.cache-hit != 'true'
         run: |
