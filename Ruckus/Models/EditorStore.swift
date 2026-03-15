@@ -8,6 +8,7 @@ class EditorStore {
   private static let openDocumentPathsKey = "openDocumentPaths"
   private static let activeDocumentPathKey = "activeDocumentPath"
 
+  private var saveTask: Task<Void, Never>?
   private(set) var isLoading = true
   private(set) var baseCompletions: [String] = []
   private(set) var documents: [EditorDocument] = [] {
@@ -288,7 +289,10 @@ class EditorStore {
 
   private func saveSession() {
     guard !isLoading else { return }
-    Task {
+    saveTask?.cancel()
+    saveTask = Task {
+      try? await Task.sleep(for: .milliseconds(100))
+      guard !Task.isCancelled else { return }
       do {
         try await saveSessionAsync()
       } catch {
