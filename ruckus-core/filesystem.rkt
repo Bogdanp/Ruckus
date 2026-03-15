@@ -4,8 +4,10 @@
          noise/serde
          (prefix-in base: racket/base)
          racket/file
+         racket/path
          racket/promise
-         "appdata.rkt")
+         "appdata.rkt"
+         "example.rkt")
 
 (provide
  (record-out File)
@@ -15,6 +17,15 @@
 (define files-path
   (delay/sync
    (define path (build-application-path "files"))
+   (make-directory* path)
+   path))
+
+(define examples-path
+  (delay/sync
+   (define path
+     (build-path
+      (force files-path)
+      "Examples"))
    (make-directory* path)
    path))
 
@@ -68,3 +79,11 @@
      #;compat-base-dir (force files-path)))
   (base:delete-file path)
   (path->string path))
+
+(define-rpc (install-examples)
+  (define dest-dir (force examples-path))
+  (for ([src (in-directory examples-dir (λ (_) #f))]
+        #:when (file-exists? src))
+    (define dst (build-path dest-dir (file-name-from-path src)))
+    (unless (file-exists? dst)
+      (copy-file src dst))))
