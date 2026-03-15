@@ -132,6 +132,13 @@ struct ContentView: View {
       Label("Find...", systemImage: "magnifyingglass")
     }
     .disabled(store.activeDocument == nil)
+    Button {
+      Task { await store.formatActiveDocument() }
+    } label: {
+      Label("Format", systemImage: "text.alignleft")
+    }
+    .keyboardShortcut("i", modifiers: [.command, .shift])
+    .disabled(store.activeDocument == nil)
     Divider()
     Button {
       editorUndoManager?.undo()

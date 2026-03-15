@@ -167,6 +167,16 @@ class EditorStore {
     await refreshScriptManifest()
   }
 
+  func formatActiveDocument() async {
+    guard let doc = activeDocument else { return }
+    do {
+      let formatted = try await Backend.shared.formatProgram(doc.code)
+      doc.code = formatted
+    } catch {
+      doc.appendOutput("Format failed: \(error.localizedDescription)", stream: .stderr)
+    }
+  }
+
   func revert() async {
     guard let doc = activeDocument, let path = doc.path else { return }
     do {
