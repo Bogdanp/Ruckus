@@ -4,6 +4,7 @@
 (define deps
   '("actor-lib"
     "base"
+    "fmt"
     ["noise-serde-lib" #:version "0.11"]
     "sandbox-lib"
     "struct-define"
