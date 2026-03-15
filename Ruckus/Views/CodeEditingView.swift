@@ -1,3 +1,4 @@
+import ObjectiveC
 import Runestone
 import SwiftUI
 
@@ -20,6 +21,7 @@ struct CodeEditingView: UIViewRepresentable {
     textView.autocorrectionType = .no
     textView.smartQuotesType = .no
     textView.smartDashesType = .no
+    disableWritingTools(on: textView)
     textView.indentStrategy = .space(length: 2)
     textView.textContainerInset = UIEdgeInsets(top: 8, left: 5, bottom: 8, right: 5)
     textView.gutterLeadingPadding = 8
@@ -47,6 +49,24 @@ struct CodeEditingView: UIViewRepresentable {
     coordinator.highlightController.updateBracketHighlights(in: textView)
 
     return textView
+  }
+
+  /// Disable Apple Writing Tools (Proofread/Rewrite) on the underlying text input view.
+  /// Runestone's TextInputView conforms to UITextInputTraits but doesn't implement the
+  /// optional `writingToolsBehavior` property, so UIKit defaults to `.default` (enabled).
+  /// We add a getter returning `.none` (-1) via the ObjC runtime to suppress it.
+  private func disableWritingTools(on textView: TextView) {
+    guard let inputView = textView.subviews.first(where: { $0 is UITextInput })
+    else { return }
+    let sel = NSSelectorFromString("writingToolsBehavior")
+    if inputView.responds(to: sel) {
+      inputView.setValue(-1, forKey: "writingToolsBehavior")
+    } else {
+      let getter: @convention(block) (AnyObject) -> Int = { _ in -1 }
+      class_addMethod(
+        type(of: inputView), sel, imp_implementationWithBlock(getter), "q@:"
+      )
+    }
   }
 
   private func applyInsertionPointColor(to textView: TextView) {
