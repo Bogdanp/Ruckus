@@ -63,8 +63,15 @@ final class CompletionController {
     let caretRect = textView.caretRect(for: selectedRange.start)
     let caretInWindow = textView.convert(caretRect, to: window)
     let originX = caretInWindow.maxX + 2
-    let originY = caretInWindow.minY
+    var originY = caretInWindow.minY
     let availableWidth = window.bounds.width - originX
+
+    // Prevent the popover from overlapping the input accessory bar.
+    let textViewBottom = textView.convert(textView.bounds, to: window).maxY
+    if originY + popover.frame.height > textViewBottom {
+      originY = textViewBottom - popover.frame.height
+    }
+
     popover.frame.origin = CGPoint(x: originX, y: max(4, originY))
     popover.frame.size.width = min(popover.frame.width, max(0, availableWidth))
   }
