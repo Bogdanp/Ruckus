@@ -61,6 +61,10 @@
   (base:delete-file path))
 
 (define-rpc (make-temp-path : String)
-  (define path (make-temporary-file "ruckus-~a.rkt"))
+  (define path
+    (make-temporary-file
+     ".untitled-~a.rkt"
+     #;compat-copy-from #f
+     #;compat-base-dir (force files-path)))
   (base:delete-file path)
   (path->string path))
