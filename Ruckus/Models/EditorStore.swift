@@ -26,6 +26,17 @@ class EditorStore {
     return documents.first { $0.id == id }
   }
 
+  func reorderDocuments(to ids: [UUID]) {
+    var reordered: [EditorDocument] = []
+    for id in ids {
+      if let doc = documents.first(where: { $0.id == id }) {
+        reordered.append(doc)
+      }
+    }
+    documents = reordered
+    saveSession()
+  }
+
   func selectDocument(_ doc: EditorDocument) {
     activeDocumentID = doc.id
     saveSession()
@@ -89,10 +100,19 @@ class EditorStore {
         }
       }
     }
-    documents.removeAll { $0.id == doc.id }
     if activeDocumentID == doc.id {
-      activeDocumentID = documents.last?.id
+      if let idx = documents.firstIndex(where: { $0.id == doc.id }) {
+        let nextIndex = documents.index(after: idx)
+        if nextIndex < documents.endIndex {
+          activeDocumentID = documents[nextIndex].id
+        } else if idx > documents.startIndex {
+          activeDocumentID = documents[documents.index(before: idx)].id
+        } else {
+          activeDocumentID = nil
+        }
+      }
     }
+    documents.removeAll { $0.id == doc.id }
     if documents.isEmpty {
       newDocument()
     }

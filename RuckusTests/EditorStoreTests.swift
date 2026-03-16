@@ -72,7 +72,7 @@ struct EditorStoreTests {
     let store = makeStore(paths: [
       "/files/Examples/foo.rkt",
       "/files/Examples/bar.rkt",
-      "/files/a.rkt",
+      "/files/a.rkt"
     ])
 
     store.closeDocuments(affectedByDeletionOf: "/files/Examples", isFolder: true)
@@ -109,5 +109,82 @@ struct EditorStoreTests {
 
     let titles = store.documents.map(\.title)
     #expect(titles == ["foo.rkt"])
+  }
+
+  // MARK: - reorderDocuments
+
+  @Test
+  func reorderDocumentsChangesOrder() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
+    let ids = store.documents.map(\.id)
+
+    store.reorderDocuments(to: [ids[2], ids[0], ids[1]])
+
+    let titles = store.documents.map(\.title)
+    #expect(titles == ["c.rkt", "a.rkt", "b.rkt"])
+  }
+
+  @Test
+  func reorderDocumentsPreservesActiveDocument() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
+    let ids = store.documents.map(\.id)
+    store.selectDocument(store.documents[1])
+
+    store.reorderDocuments(to: [ids[2], ids[0], ids[1]])
+
+    #expect(store.activeDocument?.title == "b.rkt")
+  }
+
+  @Test
+  func reorderDocumentsIgnoresUnknownIDs() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt"])
+    let ids = store.documents.map(\.id)
+
+    store.reorderDocuments(to: [ids[1], UUID(), ids[0]])
+
+    let titles = store.documents.map(\.title)
+    #expect(titles == ["b.rkt", "a.rkt"])
+  }
+
+  // MARK: - close (tab selection)
+
+  @Test
+  func closeActiveFirstTabSelectsNext() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
+    store.selectDocument(store.documents[0])
+
+    store.close(store.documents[0])
+
+    #expect(store.activeDocument?.title == "b.rkt")
+  }
+
+  @Test
+  func closeActiveLastTabSelectsPrevious() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
+    // activeDocumentID is already c.rkt (last added)
+
+    store.close(store.documents[2])
+
+    #expect(store.activeDocument?.title == "b.rkt")
+  }
+
+  @Test
+  func closeActiveMiddleTabSelectsNext() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
+    store.selectDocument(store.documents[1])
+
+    store.close(store.documents[1])
+
+    #expect(store.activeDocument?.title == "c.rkt")
+  }
+
+  @Test
+  func closeInactiveTabKeepsActiveTab() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
+    store.selectDocument(store.documents[1])
+
+    store.close(store.documents[0])
+
+    #expect(store.activeDocument?.title == "b.rkt")
   }
 }

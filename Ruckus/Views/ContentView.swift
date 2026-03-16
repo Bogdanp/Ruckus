@@ -24,6 +24,7 @@ struct ContentView: View {
               activeDocumentID: store.activeDocumentID,
               onSelect: { store.selectDocument($0) },
               onClose: { store.close($0) },
+              onReorder: { store.reorderDocuments(to: $0) },
               onNew: { store.newDocument() }
             )
             if let doc = store.activeDocument {
