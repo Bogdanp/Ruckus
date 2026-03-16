@@ -58,7 +58,7 @@ private struct TabBarItem: View {
     Button(action: onSelect) {
       HStack(spacing: 5) {
         Text(title)
-          .font(.subheadline)
+          .font(.system(.subheadline, design: .rounded))
           .fontWeight(isActive ? .medium : .regular)
           .foregroundStyle(isActive ? .primary : .secondary)
           .lineLimit(1)
