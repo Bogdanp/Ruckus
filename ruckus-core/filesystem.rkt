@@ -3,6 +3,7 @@
 (require noise/backend
          noise/serde
          (prefix-in base: racket/base)
+         (prefix-in base: racket/file)
          racket/file
          racket/path
          racket/promise
@@ -67,6 +68,9 @@
 
 (define-rpc (create-directory [at-path path : String])
   (make-directory* path))
+
+(define-rpc (delete-directory [at-path path : String])
+  (base:delete-directory/files path #:must-exist? #f))
 
 (define-rpc (delete-file [at-path path : String])
   (base:delete-file path))
