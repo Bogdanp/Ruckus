@@ -4,6 +4,7 @@ import SwiftUI
 struct FileBrowserSheet: View {
   var onOpen: (String) -> Void
   @Environment(\.dismiss) private var dismiss
+  @Environment(EditorStore.self) private var store
   @State private var currentDirectory = ""
 
   var body: some View {
@@ -18,6 +19,12 @@ struct FileBrowserSheet: View {
         case .folder:
           ScriptManifest.removeAll(underDirectoryAtPath: entry.path)
         }
+      },
+      hasOpenDocuments: { entry in
+        store.hasOpenDocuments(at: entry.path, isFolder: entry.isFolder)
+      },
+      onCloseDocuments: { entry in
+        store.closeDocuments(affectedByDeletionOf: entry.path, isFolder: entry.isFolder)
       },
       currentDirectory: $currentDirectory,
       header: { EmptyView() },

@@ -257,6 +257,28 @@ class EditorStore {
     }
   }
 
+  func hasOpenDocuments(at path: String, isFolder: Bool) -> Bool {
+    if isFolder {
+      let prefix = path + "/"
+      return documents.contains { $0.path?.hasPrefix(prefix) == true }
+    } else {
+      return documents.contains { $0.path == path }
+    }
+  }
+
+  func closeDocuments(affectedByDeletionOf path: String, isFolder: Bool) {
+    let docsToClose: [EditorDocument]
+    if isFolder {
+      let prefix = path + "/"
+      docsToClose = documents.filter { $0.path?.hasPrefix(prefix) == true }
+    } else {
+      docsToClose = documents.filter { $0.path == path }
+    }
+    for doc in docsToClose {
+      close(doc)
+    }
+  }
+
   func cleanupTempFile(_ doc: EditorDocument) {
     guard let tempPath = doc.tempPath else { return }
     doc.tempPath = nil

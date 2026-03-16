@@ -5,6 +5,8 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
   var dismissLabel: String
   var allowsDeletion: Bool = false
   var onDelete: ((BrowserEntry) -> Void)?
+  var hasOpenDocuments: ((BrowserEntry) -> Bool)?
+  var onCloseDocuments: ((BrowserEntry) -> Void)?
   @Binding var currentDirectory: String
   @ViewBuilder var header: () -> Header
   @ViewBuilder var fileRow: (BrowserEntry) -> FileRow
@@ -22,6 +24,8 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
   @State private var showNewFolderAlert = false
   @State private var folderToDelete: BrowserEntry?
   @State private var showDeleteFolderAlert = false
+  @State private var fileToDelete: BrowserEntry?
+  @State private var showOpenFileDeleteAlert = false
 
   var body: some View {
     NavigationStack {
@@ -73,11 +77,29 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
         presenting: folderToDelete
       ) { folder in
         Button("Delete Folder", role: .destructive) {
+          onCloseDocuments?(folder)
           Task { await deleteEntry(folder) }
         }
         Button("Cancel", role: .cancel) {}
+      } message: { folder in
+        if hasOpenDocuments?(folder) == true {
+          Text("Open files in this folder will be closed. The folder and all its contents will be permanently deleted.")
+        } else {
+          Text("This will permanently delete the folder and all its contents.")
+        }
+      }
+      .alert(
+        "\"\(fileToDelete?.name ?? "")\" is open in the editor",
+        isPresented: $showOpenFileDeleteAlert,
+        presenting: fileToDelete
+      ) { file in
+        Button("Close and Delete", role: .destructive) {
+          onCloseDocuments?(file)
+          Task { await deleteEntry(file) }
+        }
+        Button("Cancel", role: .cancel) {}
       } message: { _ in
-        Text("This will permanently delete the folder and all its contents.")
+        Text("The file will be closed and permanently deleted.")
       }
       .alert("New Folder", isPresented: $showNewFolderAlert) {
         TextField("Folder name", text: $newFolderName)
@@ -118,7 +140,12 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
           .swipeActions(edge: .trailing) {
             if allowsDeletion {
               Button(role: .destructive) {
-                Task { await deleteEntry(entry) }
+                if hasOpenDocuments?(entry) == true {
+                  fileToDelete = entry
+                  showOpenFileDeleteAlert = true
+                } else {
+                  Task { await deleteEntry(entry) }
+                }
               } label: {
                 Label("Delete", systemImage: "trash")
               }
