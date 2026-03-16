@@ -20,6 +20,8 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
   @State private var state: BrowserState = .loading
   @State private var newFolderName = ""
   @State private var showNewFolderAlert = false
+  @State private var folderToDelete: BrowserEntry?
+  @State private var showDeleteFolderAlert = false
 
   var body: some View {
     NavigationStack {
@@ -65,6 +67,18 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
           }
         }
       }
+      .alert(
+        "Delete \"\(folderToDelete?.name ?? "")\"?",
+        isPresented: $showDeleteFolderAlert,
+        presenting: folderToDelete
+      ) { folder in
+        Button("Delete Folder", role: .destructive) {
+          Task { await deleteEntry(folder) }
+        }
+        Button("Cancel", role: .cancel) {}
+      } message: { _ in
+        Text("This will permanently delete the folder and all its contents.")
+      }
       .alert("New Folder", isPresented: $showNewFolderAlert) {
         TextField("Folder name", text: $newFolderName)
         Button("Create") {
@@ -89,6 +103,16 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
           Label(entry.name, systemImage: "folder")
         }
         .tint(.primary)
+        .swipeActions(edge: .trailing) {
+          if allowsDeletion {
+            Button(role: .destructive) {
+              folderToDelete = entry
+              showDeleteFolderAlert = true
+            } label: {
+              Label("Delete", systemImage: "trash")
+            }
+          }
+        }
       case .file:
         fileRow(entry)
           .swipeActions(edge: .trailing) {
@@ -144,7 +168,12 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
 
   private func deleteEntry(_ entry: BrowserEntry) async {
     do {
-      try await Backend.shared.deleteFile(atPath: entry.path)
+      switch entry.kind {
+      case .file:
+        try await Backend.shared.deleteFile(atPath: entry.path)
+      case .folder:
+        try await Backend.shared.deleteDirectory(atPath: entry.path)
+      }
       if case .loaded(var entries) = state {
         entries.removeAll { $0.id == entry.id }
         state = .loaded(entries)

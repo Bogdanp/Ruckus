@@ -12,8 +12,11 @@ struct FileBrowserSheet: View {
       dismissLabel: "Done",
       allowsDeletion: true,
       onDelete: { entry in
-        if case .file = entry.kind {
-          ScriptManifest.remove(script: entry.name)
+        switch entry.kind {
+        case .file:
+          ScriptManifest.remove(scriptAtPath: entry.path)
+        case .folder:
+          ScriptManifest.removeAll(underDirectoryAtPath: entry.path)
         }
       },
       currentDirectory: $currentDirectory,
