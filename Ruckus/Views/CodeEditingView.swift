@@ -94,7 +94,9 @@ struct CodeEditingView: UIViewRepresentable {
     }
 
     if document !== coordinator.documentObserver.currentDocument {
-      switchDocument(in: textView, coordinator: coordinator, font: font)
+      coordinator.switchDocument(
+        to: document, in: textView, font: font, palette: settings.colorPalette
+      )
     } else if themeChanged {
       let theme = EditorTheme(font: font, palette: settings.colorPalette)
       textView.theme = theme
@@ -131,30 +133,6 @@ struct CodeEditingView: UIViewRepresentable {
     }
   }
 
-  private func switchDocument(
-    in textView: TextView, coordinator: Coordinator, font: UIFont
-  ) {
-    if let prev = coordinator.documentObserver.currentDocument {
-      prev.savedContentOffset = textView.contentOffset
-      prev.savedSelectedRange = textView.selectedRange
-    }
-    let theme = EditorTheme(font: font, palette: settings.colorPalette)
-    let state = TextViewState(text: document.code, theme: theme, language: .racket)
-    textView.setState(state)
-    textView.backgroundColor = theme.backgroundColor
-    coordinator.documentObserver.currentDocument = document
-    coordinator.documentObserver.observeCode(of: document, in: textView)
-    textView.layoutIfNeeded()
-    if let range = document.savedSelectedRange {
-      textView.selectedRange = range
-    }
-    if let offset = document.savedContentOffset {
-      textView.contentOffset = offset
-    }
-    coordinator.completionController.dismiss()
-    coordinator.highlightController.updateBracketHighlights(in: textView)
-  }
-
   @MainActor
   class Coordinator: @preconcurrency TextViewDelegate {
     let completionController = CompletionController()
@@ -172,6 +150,38 @@ struct CodeEditingView: UIViewRepresentable {
 
     init(document: EditorDocument) {
       self.documentObserver.currentDocument = document
+    }
+
+    func switchDocument(
+      to document: EditorDocument, in textView: TextView,
+      font: UIFont, palette: ColorPalette?
+    ) {
+      if let prev = documentObserver.currentDocument {
+        prev.savedContentOffset = textView.contentOffset
+        prev.savedSelectedRange = textView.selectedRange
+      }
+      let theme = EditorTheme(font: font, palette: palette)
+      let state = TextViewState(text: document.code, theme: theme, language: .racket)
+      textView.editorDelegate = nil
+      textView.highlightedRanges = []
+      textView.selectedRange = NSRange(location: 0, length: 0)
+      textView.setState(state)
+      textView.editorDelegate = self
+      textView.backgroundColor = theme.backgroundColor
+      documentObserver.currentDocument = document
+      documentObserver.observeCode(of: document, in: textView)
+      completionController.dismiss()
+      highlightController.clearMatchState()
+      highlightController.updateBracketHighlights(in: textView)
+      let savedRange = document.savedSelectedRange ?? NSRange(location: 0, length: 0)
+      let textLength = (textView.text as NSString).length
+      let location = min(savedRange.location, textLength)
+      let length = min(savedRange.length, textLength - location)
+      textView.selectedRange = NSRange(location: location, length: length)
+      textView.layoutIfNeeded()
+      if let offset = document.savedContentOffset {
+        textView.contentOffset = offset
+      }
     }
 
     func textViewDidChange(_ textView: TextView) {

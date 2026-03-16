@@ -426,4 +426,178 @@ struct CodeEditingViewTests {
     // Unmatched brackets should still get rainbow-colored.
     #expect(textView.highlightedRanges.count == 3)
   }
+
+  // MARK: - switchDocument regression tests
+
+  @Test
+  func switchDocumentFromLongerToShorterBuffer() {
+    let longCode = String(repeating: "(a) ", count: 200) // ~800 chars
+    let shortCode = "(b)"
+    let longDoc = EditorDocument(code: longCode)
+    let shortDoc = EditorDocument(code: shortCode)
+    let coord = makeCoordinator(document: longDoc)
+    let textView = makeTextView(text: longCode)
+    coord.documentObserver.currentDocument = longDoc
+    let font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+
+    // Move cursor to end of long buffer.
+    textView.selectedRange = NSRange(location: longCode.count, length: 0)
+
+    // Switch to shorter buffer — must not crash.
+    coord.switchDocument(to: shortDoc, in: textView, font: font, palette: nil)
+
+    #expect(textView.text == shortCode)
+    #expect(textView.selectedRange.location <= shortCode.count)
+  }
+
+  @Test
+  func switchDocumentToNeverLoadedDocument() {
+    let longCode = String(repeating: "(a) ", count: 200)
+    let shortCode = "(b)"
+    let longDoc = EditorDocument(code: longCode)
+    let shortDoc = EditorDocument(code: shortCode)
+    // shortDoc.savedSelectedRange is nil — never loaded before.
+    let coord = makeCoordinator(document: longDoc)
+    let textView = makeTextView(text: longCode)
+    coord.documentObserver.currentDocument = longDoc
+    let font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+
+    textView.selectedRange = NSRange(location: longCode.count, length: 0)
+
+    coord.switchDocument(to: shortDoc, in: textView, font: font, palette: nil)
+
+    #expect(shortDoc.savedSelectedRange == nil)
+    #expect(textView.selectedRange == NSRange(location: 0, length: 0))
+  }
+
+  @Test
+  func switchDocumentClampsSavedRange() {
+    let longCode = String(repeating: "x", count: 500)
+    let shortCode = "abc"
+    let longDoc = EditorDocument(code: longCode)
+    let shortDoc = EditorDocument(code: shortCode)
+    // Simulate a previously-saved cursor beyond the short document's length.
+    shortDoc.savedSelectedRange = NSRange(location: 400, length: 0)
+    let coord = makeCoordinator(document: longDoc)
+    let textView = makeTextView(text: longCode)
+    coord.documentObserver.currentDocument = longDoc
+    let font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+
+    coord.switchDocument(to: shortDoc, in: textView, font: font, palette: nil)
+
+    #expect(textView.selectedRange.location == shortCode.count)
+    #expect(textView.selectedRange.length == 0)
+  }
+
+  @Test
+  func switchDocumentClearsStaleHighlightedRanges() {
+    let longCode = "(define (foo) (bar (baz 42)))"
+    let shortCode = "(a)"
+    let longDoc = EditorDocument(code: longCode)
+    let shortDoc = EditorDocument(code: shortCode)
+    let coord = makeCoordinator(document: longDoc)
+    let textView = makeTextView(text: longCode)
+    coord.documentObserver.currentDocument = longDoc
+    coord.highlightController.applyColors(from: rainbowSettings())
+    let font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+
+    // Populate rainbow highlights for the long document.
+    coord.highlightController.updateBracketHighlights(in: textView)
+    let oldCount = textView.highlightedRanges.count
+    #expect(oldCount > 2) // long doc has many brackets
+
+    coord.switchDocument(to: shortDoc, in: textView, font: font, palette: nil)
+
+    // All highlighted ranges must be within the short document's bounds.
+    let textLength = (textView.text as NSString).length
+    for range in textView.highlightedRanges {
+      #expect(
+        range.range.location + range.range.length <= textLength,
+        "Stale highlight range \(range.range) exceeds text length \(textLength)"
+      )
+    }
+  }
+
+  @Test
+  func switchDocumentClearsStaleMatchHighlight() {
+    let codeA = "(define (foo) bar)"
+    let codeB = "x"
+    let docA = EditorDocument(code: codeA)
+    let docB = EditorDocument(code: codeB)
+    let coord = makeCoordinator(document: docA)
+    let textView = makeTextView(text: codeA)
+    coord.documentObserver.currentDocument = docA
+    coord.highlightController.applyColors(from: rainbowSettings())
+    let font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+
+    // Place cursor after '(' at position 0 to trigger a match highlight.
+    textView.selectedRange = NSRange(location: 1, length: 0)
+    coord.textViewDidChangeSelection(textView)
+
+    // Verify a match highlight exists with a range beyond codeB's length.
+    let matchRanges = textView.highlightedRanges.filter {
+      $0.range.location >= codeB.count
+    }
+    #expect(!matchRanges.isEmpty, "Expected match highlight beyond codeB length")
+
+    // Switch to the very short document — stale match must not carry over.
+    coord.switchDocument(to: docB, in: textView, font: font, palette: nil)
+
+    let textLength = (textView.text as NSString).length
+    for range in textView.highlightedRanges {
+      #expect(
+        range.range.location + range.range.length <= textLength,
+        "Stale match range \(range.range) exceeds text length \(textLength)"
+      )
+    }
+  }
+
+  @Test
+  func switchDocumentSavesPreviousDocumentState() {
+    let codeA = "(hello)"
+    let codeB = "(world)"
+    let docA = EditorDocument(code: codeA)
+    let docB = EditorDocument(code: codeB)
+    let coord = makeCoordinator(document: docA)
+    let textView = makeTextView(text: codeA)
+    coord.documentObserver.currentDocument = docA
+    let font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+
+    textView.selectedRange = NSRange(location: 5, length: 0)
+
+    coord.switchDocument(to: docB, in: textView, font: font, palette: nil)
+
+    #expect(docA.savedSelectedRange == NSRange(location: 5, length: 0))
+  }
+
+  @Test
+  func switchDocumentRemovesFlashOverlay() {
+    let codeA = "(define (foo) bar)"
+    let codeB = "hello"
+    let docA = EditorDocument(code: codeA)
+    let docB = EditorDocument(code: codeB)
+    let coord = makeCoordinator(document: docA)
+    let textView = makeTextView(text: codeA)
+    coord.documentObserver.currentDocument = docA
+    coord.highlightController.applyColors(from: rainbowSettings())
+    let font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+
+    let subviewCountBefore = textView.subviews.count
+
+    // Trigger a bracket match flash by moving cursor next to '('.
+    textView.selectedRange = NSRange(location: 1, length: 0)
+    coord.textViewDidChangeSelection(textView)
+
+    #expect(
+      textView.subviews.count > subviewCountBefore,
+      "Expected flash overlay subview after bracket match"
+    )
+
+    coord.switchDocument(to: docB, in: textView, font: font, palette: nil)
+
+    #expect(
+      textView.subviews.count == subviewCountBefore,
+      "Flash overlay should be removed after document switch"
+    )
+  }
 }

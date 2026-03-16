@@ -73,6 +73,10 @@ final class HighlightController {
 
   func clearMatchState() {
     lastMatchedPosition = nil
+    cachedMatchRanges = []
+    flashView?.layer.removeAllAnimations()
+    flashView?.removeFromSuperview()
+    flashView = nil
   }
 
   private func applyMatchRanges(_ ranges: [HighlightedRange], to textView: TextView) {
