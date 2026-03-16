@@ -1,6 +1,7 @@
 import Runestone
 import UIKit
 
+@MainActor
 struct EditorAccessoryBar {
   // Sorted by frequency across .rkt files (see bin/count-rkt-symbols).
   private static let frequentSymbols: [String] = [

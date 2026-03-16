@@ -15,6 +15,11 @@ Build from the command line:
 
     xcodebuild -workspace Ruckus.xcworkspace -scheme Ruckus -destination 'generic/platform=iOS' build
 
+To check for warnings, use `clean build` — incremental builds skip unchanged
+files and won't re-emit their warnings:
+
+    xcodebuild clean build -workspace Ruckus.xcworkspace -scheme Ruckus -destination 'generic/platform=iOS'
+
 A pre-build script in `Project.swift` runs `make` automatically before
 compiling. This regenerates `Backend.swift` and `res/core.zo` from
 Racket source. No need to run `make` manually before building.
