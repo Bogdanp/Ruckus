@@ -23,35 +23,30 @@ struct EditorStoreTests {
   @Test
   func hasOpenDocumentsReturnsTrueForOpenFile() {
     let store = makeStore(paths: ["/files/a.rkt"])
-
     #expect(store.hasOpenDocuments(at: "/files/a.rkt", isFolder: false))
   }
 
   @Test
   func hasOpenDocumentsReturnsFalseForClosedFile() {
     let store = makeStore(paths: ["/files/a.rkt"])
-
     #expect(!store.hasOpenDocuments(at: "/files/b.rkt", isFolder: false))
   }
 
   @Test
   func hasOpenDocumentsReturnsTrueForFolderContainingOpenFile() {
     let store = makeStore(paths: ["/files/Examples/foo.rkt"])
-
     #expect(store.hasOpenDocuments(at: "/files/Examples", isFolder: true))
   }
 
   @Test
   func hasOpenDocumentsReturnsFalseForFolderWithNoOpenFiles() {
     let store = makeStore(paths: ["/files/a.rkt"])
-
     #expect(!store.hasOpenDocuments(at: "/files/Examples", isFolder: true))
   }
 
   @Test
   func hasOpenDocumentsDoesNotMatchPartialFolderNames() {
     let store = makeStore(paths: ["/files/Examples2/foo.rkt"])
-
     #expect(!store.hasOpenDocuments(at: "/files/Examples", isFolder: true))
   }
 
@@ -60,11 +55,8 @@ struct EditorStoreTests {
   @Test
   func closeDocumentsRemovesMatchingFile() {
     let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt"])
-
     store.closeDocuments(affectedByDeletionOf: "/files/a.rkt", isFolder: false)
-
-    let titles = store.documents.map(\.title)
-    #expect(titles == ["b.rkt"])
+    #expect(store.documents.map(\.title) == ["b.rkt"])
   }
 
   @Test
@@ -74,19 +66,14 @@ struct EditorStoreTests {
       "/files/Examples/bar.rkt",
       "/files/a.rkt"
     ])
-
     store.closeDocuments(affectedByDeletionOf: "/files/Examples", isFolder: true)
-
-    let titles = store.documents.map(\.title)
-    #expect(titles == ["a.rkt"])
+    #expect(store.documents.map(\.title) == ["a.rkt"])
   }
 
   @Test
   func closeDocumentsCreatesNewDocWhenAllClosed() {
     let store = makeStore(paths: ["/files/a.rkt"])
-
     store.closeDocuments(affectedByDeletionOf: "/files/a.rkt", isFolder: false)
-
     #expect(store.documents.count == 1)
     #expect(store.documents.first?.title == "Untitled")
   }
@@ -94,21 +81,15 @@ struct EditorStoreTests {
   @Test
   func closeDocumentsDoesNothingWhenNoMatch() {
     let store = makeStore(paths: ["/files/a.rkt"])
-
     store.closeDocuments(affectedByDeletionOf: "/files/b.rkt", isFolder: false)
-
-    let titles = store.documents.map(\.title)
-    #expect(titles == ["a.rkt"])
+    #expect(store.documents.map(\.title) == ["a.rkt"])
   }
 
   @Test
   func closeDocumentsDoesNotMatchPartialFolderNames() {
     let store = makeStore(paths: ["/files/Examples2/foo.rkt"])
-
     store.closeDocuments(affectedByDeletionOf: "/files/Examples", isFolder: true)
-
-    let titles = store.documents.map(\.title)
-    #expect(titles == ["foo.rkt"])
+    #expect(store.documents.map(\.title) == ["foo.rkt"])
   }
 
   // MARK: - reorderDocuments
@@ -117,11 +98,8 @@ struct EditorStoreTests {
   func reorderDocumentsChangesOrder() {
     let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
     let ids = store.documents.map(\.id)
-
     store.reorderDocuments(to: [ids[2], ids[0], ids[1]])
-
-    let titles = store.documents.map(\.title)
-    #expect(titles == ["c.rkt", "a.rkt", "b.rkt"])
+    #expect(store.documents.map(\.title) == ["c.rkt", "a.rkt", "b.rkt"])
   }
 
   @Test
@@ -129,9 +107,7 @@ struct EditorStoreTests {
     let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
     let ids = store.documents.map(\.id)
     store.selectDocument(store.documents[1])
-
     store.reorderDocuments(to: [ids[2], ids[0], ids[1]])
-
     #expect(store.activeDocument?.title == "b.rkt")
   }
 
@@ -139,11 +115,8 @@ struct EditorStoreTests {
   func reorderDocumentsIgnoresUnknownIDs() {
     let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt"])
     let ids = store.documents.map(\.id)
-
     store.reorderDocuments(to: [ids[1], UUID(), ids[0]])
-
-    let titles = store.documents.map(\.title)
-    #expect(titles == ["b.rkt", "a.rkt"])
+    #expect(store.documents.map(\.title) == ["b.rkt", "a.rkt"])
   }
 
   // MARK: - close (tab selection)
@@ -152,19 +125,14 @@ struct EditorStoreTests {
   func closeActiveFirstTabSelectsNext() {
     let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
     store.selectDocument(store.documents[0])
-
     store.close(store.documents[0])
-
     #expect(store.activeDocument?.title == "b.rkt")
   }
 
   @Test
   func closeActiveLastTabSelectsPrevious() {
     let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
-    // activeDocumentID is already c.rkt (last added)
-
-    store.close(store.documents[2])
-
+    store.close(store.documents[2]) // active is already c.rkt (last added)
     #expect(store.activeDocument?.title == "b.rkt")
   }
 
@@ -172,9 +140,7 @@ struct EditorStoreTests {
   func closeActiveMiddleTabSelectsNext() {
     let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
     store.selectDocument(store.documents[1])
-
     store.close(store.documents[1])
-
     #expect(store.activeDocument?.title == "c.rkt")
   }
 
@@ -182,9 +148,7 @@ struct EditorStoreTests {
   func closeInactiveTabKeepsActiveTab() {
     let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
     store.selectDocument(store.documents[1])
-
     store.close(store.documents[0])
-
     #expect(store.activeDocument?.title == "b.rkt")
   }
 }

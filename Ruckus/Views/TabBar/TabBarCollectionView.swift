@@ -29,7 +29,6 @@ struct TabBarCollectionView: UIViewRepresentable {
     collectionView.dropDelegate = context.coordinator
 
     context.coordinator.setupDataSource(collectionView)
-
     return collectionView
   }
 
