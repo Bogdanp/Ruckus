@@ -4,6 +4,7 @@ import WidgetKit
 
 struct ContentView: View {
   @Environment(EditorStore.self) private var store
+  @Environment(EditorSettings.self) private var editorSettings
   @Environment(\.saveAction) private var saveAction
   @Environment(\.shareAction) private var shareAction
   @State private var editorUndoManager: UndoManager?
@@ -34,6 +35,11 @@ struct ContentView: View {
               )
               .frame(maxWidth: .infinity, maxHeight: .infinity)
               .layoutPriority(-1)
+              .background(
+                Color(uiColor: editorSettings.colorPalette?.backgroundColor ?? .systemBackground)
+                  .ignoresSafeArea(edges: .bottom)
+              )
+              .ignoresSafeArea(.container, edges: .bottom)
             }
           }
         }
