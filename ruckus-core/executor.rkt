@@ -93,6 +93,7 @@
                  (if evaluation (thread-dead-evt evaluation) never-evt)
                  (lambda (_)
                    (struct-define state st)
+                   (custodian-shutdown-all custodian)
                    (define updated-execution
                      (struct-copy
                       execution ex
