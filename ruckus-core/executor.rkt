@@ -3,6 +3,7 @@
 (require actor
          noise/backend
          noise/serde
+         racket/hash
          racket/pretty
          struct-define
          syntax/modread
@@ -11,6 +12,8 @@
 (provide
  (record-out ExecutionOutput)
  (enum-out ExecutionStep))
+
+(define BUFSIZE (* 64 1024))
 
 (define-record ExecutionOutput
   [stdout : Bytes]
@@ -21,7 +24,7 @@
   [more {output : ExecutionOutput}])
 
 (struct state (sequence executions))
-(struct execution (id path custodian evaluation symbols-box stdout stderr pending-stdout pending-stderr))
+(struct execution (id path custodian evaluation symbols-box stdout stderr pending-stdout pending-stderr gc-deadline))
 
 (define (make-state)
   (state
@@ -32,8 +35,8 @@
   (define symbols-box (box null))
   (define custodian (make-custodian))
   (parameterize ([current-custodian custodian])
-    (define-values (stdout-in stdout-out) (make-pipe))
-    (define-values (stderr-in stderr-out) (make-pipe))
+    (define-values (stdout-in stdout-out) (make-pipe BUFSIZE))
+    (define-values (stderr-in stderr-out) (make-pipe BUFSIZE))
     (define evaluation
       (parameterize ([current-output-port stdout-out]
                      [current-error-port stderr-out])
@@ -50,7 +53,8 @@
      #;stdout stdout-in
      #;stderr stderr-in
      #;pending-stdout (open-output-bytes)
-     #;pending-stderr (open-output-bytes))))
+     #;pending-stderr (open-output-bytes)
+     #;gc-deadline #f)))
 
 (define (evaluate in)
   (define-values (document-dir document-name _is-dir?)
@@ -81,11 +85,29 @@
     (parameterize ([pretty-print-columns 80])
       (pretty-print v))))
 
+(define (make-gc-deadline)
+  (+ (current-inexact-monotonic-milliseconds)
+     (* 60 1000)))
+
 (define-actor (executor)
   #:state (make-state)
   #:event (lambda (st)
             (apply
              choice-evt
+             (handle-evt
+              (alarm-evt
+               (make-gc-deadline)
+               #;monotonic? #t)
+              (lambda (_)
+                (define now (current-inexact-monotonic-milliseconds))
+                (struct-copy
+                 state st
+                 [executions
+                  (hash-filter-values
+                   (state-executions st)
+                   (lambda (ex)
+                     (struct-define execution ex)
+                     (or evaluation (gc-deadline . > . now))))])))
              (for/list ([ex (in-hash-values (state-executions st))])
                (struct-define execution ex)
                (choice-evt
@@ -97,7 +119,8 @@
                    (define updated-execution
                      (struct-copy
                       execution ex
-                      [evaluation #f]))
+                      [evaluation #f]
+                      [gc-deadline (make-gc-deadline)]))
                    (when callout-installed?
                      (on-executor-step id))
                    (struct-copy
