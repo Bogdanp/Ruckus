@@ -180,18 +180,25 @@ struct ContentView: View {
       .disabled(store.activeDocument?.output.length ?? 0 == 0)
     }
     ToolbarItem(placement: .primaryAction) {
-      if store.activeDocument?.isEvaluating == true {
-        AsyncButton(action: { await store.stopExecution() }, options: [.disabledWhileRunning], label: {
+      AsyncButton(
+        action: {
+          if store.activeDocument?.isEvaluating == true {
+            await store.stopExecution()
+          } else {
+            await store.execute()
+          }
+        },
+        options: [.disabledWhileRunning]
+      ) {
+        if store.activeDocument?.isEvaluating == true {
           Label("Stop", systemImage: "stop.fill")
             .labelStyle(.iconOnly)
-        })
-      } else {
-        AsyncButton(action: { await store.execute() }, options: [.disabledWhileRunning], label: {
+        } else {
           Label("Run", systemImage: "play.fill")
             .labelStyle(.iconOnly)
-        })
-        .disabled(store.activeDocument == nil || store.activeDocument?.isEvaluating == true)
+        }
       }
+      .disabled(store.activeDocument == nil)
     }
   }
 }
