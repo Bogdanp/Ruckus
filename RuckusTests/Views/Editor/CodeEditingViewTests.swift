@@ -60,7 +60,7 @@ struct CodeEditingViewTests {
     coord.textViewDidChange(textView)
 
     #expect(doc.code == "hello world")
-    #expect(doc.isDirty == true)
+    #expect(doc.isDirty)
   }
 
   @Test
@@ -95,7 +95,7 @@ struct CodeEditingViewTests {
     )
 
     // Returns false when it handles the insertion itself.
-    #expect(result == false)
+    #expect(!result)
   }
 
   @Test
@@ -111,7 +111,7 @@ struct CodeEditingViewTests {
       replacementText: "a"
     )
 
-    #expect(result == true)
+    #expect(result)
   }
 
   @Test
@@ -129,7 +129,7 @@ struct CodeEditingViewTests {
       replacementText: "\n"
     )
 
-    #expect(result == true)
+    #expect(result)
   }
 
   // MARK: - Auto-pair brackets
@@ -152,7 +152,7 @@ struct CodeEditingViewTests {
       replacementText: opener
     )
 
-    #expect(result == false)
+    #expect(!result)
     #expect(textView.text == expected)
     #expect(textView.selectedRange == NSRange(location: 1, length: 0))
   }
@@ -172,7 +172,7 @@ struct CodeEditingViewTests {
       replacementText: ")"
     )
 
-    #expect(result == false)
+    #expect(!result)
     #expect(textView.text == "()")
     #expect(textView.selectedRange == NSRange(location: 2, length: 0))
   }
@@ -192,7 +192,7 @@ struct CodeEditingViewTests {
       replacementText: ""
     )
 
-    #expect(result == false)
+    #expect(!result)
     #expect(textView.text == "")
   }
 
@@ -211,7 +211,7 @@ struct CodeEditingViewTests {
       replacementText: ""
     )
 
-    #expect(result == true)
+    #expect(result)
   }
 
   // MARK: - Rainbow bracket highlights
@@ -262,7 +262,7 @@ struct CodeEditingViewTests {
 
     coord.highlightController.applyColors(from: settings)
 
-    #expect(coord.highlightController.rainbowEnabled == true)
+    #expect(coord.highlightController.rainbowEnabled)
     if let palette = ColorThemeName.dracula.palette {
       #expect(coord.highlightController.rainbowColors == palette.rainbowColors)
       #expect(coord.highlightController.matchColor == palette.matchHighlightColor)
@@ -296,11 +296,11 @@ struct CodeEditingViewTests {
 
     // Show the popover with some items.
     popover.update(items: ["define-values", "define-syntax"], prefix: "define")
-    #expect(popover.isHidden == false)
+    #expect(!popover.isHidden)
 
     // Selection change without typing should dismiss.
     coord.textViewDidChangeSelection(textView)
-    #expect(popover.isHidden == true)
+    #expect(popover.isHidden)
   }
 
   // MARK: - Document observation
@@ -358,12 +358,12 @@ struct CodeEditingViewTests {
     let textView = makeTextView(text: "clean")
     coord.documentObserver.currentDocument = doc
 
-    #expect(doc.isDirty == false)
+    #expect(!doc.isDirty)
 
     textView.text = "dirty"
     coord.textViewDidChange(textView)
 
-    #expect(doc.isDirty == true)
+    #expect(doc.isDirty)
   }
 
   @Test

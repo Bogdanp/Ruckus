@@ -28,12 +28,12 @@ class EditorDocument: Identifiable {
     self.code = code
   }
 
-  func appendOutput(_ text: String, stream: Stream, font: UIFont? = nil) {
+  func appendOutput(_ text: String, stream: Stream) {
     let color: UIColor = switch stream {
     case .stdout: .label
     case .stderr: .systemRed
     }
-    let outputFont = font ?? .monospacedSystemFont(ofSize: UIFont.smallSystemFontSize, weight: .regular)
+    let outputFont = UIFont.monospacedSystemFont(ofSize: UIFont.smallSystemFontSize, weight: .regular)
     let attrs: [NSAttributedString.Key: Any] = [
       .foregroundColor: color,
       .font: outputFont

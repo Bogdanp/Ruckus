@@ -55,7 +55,7 @@ final class ExecutionService {
   private func saveWidgetCache(executionId: UInt64, doc: EditorDocument) async {
     let stdout = ExecutionRegistry.shared.decodedStdout(for: executionId)
     guard let scriptId = await EditorStore.shared.relativePath(for: doc) else {
-      Logger.backend.debug("saveWidgetCache: skipped — no relative path for execution \(executionId)")
+      Logger.backend.debug("\(#function): skipped — no relative path for execution \(executionId)")
       return
     }
     ScriptOutputCache.save(output: stdout, for: scriptId)

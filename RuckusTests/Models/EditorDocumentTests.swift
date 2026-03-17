@@ -64,16 +64,6 @@ struct EditorDocumentTests {
   }
 
   @Test
-  func appendOutputUsesCustomFont() {
-    let doc = EditorDocument()
-    let customFont = UIFont.systemFont(ofSize: 20)
-    doc.appendOutput("text", stream: .stdout, font: customFont)
-    let attrs = doc.output.attributes(at: 0, effectiveRange: nil)
-    let font = attrs[.font] as? UIFont
-    #expect(font == customFont)
-  }
-
-  @Test
   func appendOutputAccumulates() {
     let doc = EditorDocument()
     doc.appendOutput("line1\n", stream: .stdout)
