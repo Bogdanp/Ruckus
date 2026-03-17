@@ -173,12 +173,12 @@ struct CodeEditingView: UIViewRepresentable {
       completionController.dismiss()
       highlightController.clearMatchState()
       highlightController.updateBracketHighlights(in: textView)
+      textView.layoutIfNeeded()
       let savedRange = document.savedSelectedRange ?? NSRange(location: 0, length: 0)
       let textLength = (textView.text as NSString).length
       let location = min(savedRange.location, textLength)
       let length = min(savedRange.length, textLength - location)
       textView.selectedRange = NSRange(location: location, length: length)
-      textView.layoutIfNeeded()
       if let offset = document.savedContentOffset {
         textView.contentOffset = offset
       }
