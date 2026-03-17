@@ -52,12 +52,16 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           if currentDirectory != rootPath {
-            AsyncButton(action: {
-              currentDirectory = (currentDirectory as NSString).deletingLastPathComponent
-              await loadEntries()
-            }, options: [.disabledWhileRunning], label: {
-              Label("Back", systemImage: "chevron.left")
-            })
+            AsyncButton(
+              options: AsyncButtonOption.allButCancel.subtracting([.showsSuccessIcon]),
+              action: {
+                currentDirectory = (currentDirectory as NSString).deletingLastPathComponent
+                await loadEntries()
+              },
+              label: {
+                Label("Back", systemImage: "chevron.left")
+              }
+            )
           } else {
             Button(dismissLabel) { dismiss() }
           }
@@ -118,12 +122,16 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
     List(entries) { entry in
       switch entry.kind {
       case .folder:
-        AsyncButton(action: {
-          currentDirectory = entry.path
-          await loadEntries()
-        }, options: [.disabledWhileRunning], label: {
-          Label(entry.name, systemImage: "folder")
-        })
+        AsyncButton(
+          options: AsyncButtonOption.allButCancel.subtracting([.showsSuccessIcon]),
+          action: {
+            currentDirectory = entry.path
+            await loadEntries()
+          },
+          label: {
+            Label(entry.name, systemImage: "folder")
+          }
+        )
         .tint(.primary)
         .swipeActions(edge: .trailing) {
           if allowsDeletion {

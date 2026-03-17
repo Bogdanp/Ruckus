@@ -126,9 +126,10 @@ struct ContentView: View {
       Label("Share...", systemImage: "square.and.arrow.up")
     }
     .disabled(store.activeDocument == nil)
-    AsyncButton(action: { await store.revert() }, options: [.disabledWhileRunning], label: {
-      Label("Revert", systemImage: "arrow.counterclockwise")
-    })
+    AsyncButton(
+      options: AsyncButtonOption.allButCancel,
+      action: { await store.revert() },
+      label: { Label("Revert", systemImage: "arrow.counterclockwise") })
     .disabled(store.activeDocument?.path == nil || store.activeDocument?.isDirty != true)
     Divider()
     Button {
@@ -137,9 +138,10 @@ struct ContentView: View {
       Label("Find...", systemImage: "magnifyingglass")
     }
     .disabled(store.activeDocument == nil)
-    AsyncButton(action: { await store.formatActiveDocument() }, options: [.disabledWhileRunning], label: {
-      Label("Format", systemImage: "text.alignleft")
-    })
+    AsyncButton(
+      options: AsyncButtonOption.allButCancel,
+      action: { await store.formatActiveDocument() },
+      label: { Label("Format", systemImage: "text.alignleft") })
     .keyboardShortcut("i", modifiers: [.command, .shift])
     .disabled(store.activeDocument == nil)
     Divider()
@@ -181,6 +183,7 @@ struct ContentView: View {
     }
     ToolbarItem(placement: .primaryAction) {
       AsyncButton(
+        options: AsyncButtonOption.allButCancel.subtracting([.showsSuccessIcon]),
         action: {
           if store.activeDocument?.isEvaluating == true {
             await store.stopExecution()
@@ -188,16 +191,15 @@ struct ContentView: View {
             await store.execute()
           }
         },
-        options: [.disabledWhileRunning]
-      ) {
-        if store.activeDocument?.isEvaluating == true {
-          Label("Stop", systemImage: "stop.fill")
-            .labelStyle(.iconOnly)
-        } else {
-          Label("Run", systemImage: "play.fill")
-            .labelStyle(.iconOnly)
-        }
-      }
+        label: {
+          if store.activeDocument?.isEvaluating == true {
+            Label("Stop", systemImage: "stop.fill")
+              .labelStyle(.iconOnly)
+          } else {
+            Label("Run", systemImage: "play.fill")
+              .labelStyle(.iconOnly)
+          }
+        })
       .disabled(store.activeDocument == nil)
     }
   }

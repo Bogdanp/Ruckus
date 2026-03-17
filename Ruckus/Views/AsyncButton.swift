@@ -1,15 +1,19 @@
 import SwiftUI
 
-struct AsyncButton<Label>: View where Label: View {
-  enum Option: CaseIterable, Hashable {
-    case disabledWhileRunning
-    case showsProgressView
-    case showsSuccessIcon
-  }
+enum AsyncButtonOption: CaseIterable, Hashable {
+  case cancelsOnDisappear
+  case disabledWhileRunning
+  case showsProgressView
+  case showsSuccessIcon
 
+  static let all = Set(Self.allCases)
+  static let allButCancel = Set(Self.allCases).subtracting([.cancelsOnDisappear])
+}
+
+struct AsyncButton<Label>: View where Label: View {
   var role: ButtonRole?
+  var options = AsyncButtonOption.all
   let action: () async -> Void
-  var options = Set(Option.allCases)
   @ViewBuilder let label: () -> Label
 
   var trigger: Binding<Bool>?
@@ -39,6 +43,7 @@ struct AsyncButton<Label>: View where Label: View {
     }
     .disabled(options.contains(.disabledWhileRunning) && running)
     .onDisappear {
+      guard options.contains(.cancelsOnDisappear) else { return }
       task?.cancel()
       task = nil
       successTask?.cancel()
