@@ -53,7 +53,11 @@ let project = Project(
           ])
         ]),
         "LSSupportsOpeningDocumentsInPlace": .boolean(true),
-        "ITSAppUsesNonExemptEncryption": .boolean(false)
+        "ITSAppUsesNonExemptEncryption": .boolean(false),
+        "UIApplicationSceneManifest": .dictionary([
+          "UIApplicationSupportsMultipleScenes": .boolean(false),
+          "UISceneConfigurations": .dictionary([:])
+        ])
       ]),
       sources: ["Ruckus/**", "RuckusShared/**"],
       resources: [

@@ -78,6 +78,9 @@ struct ContentView: View {
         store.activeDocument?.hasUnseenOutput = false
         activeSheet = .output
       }
+      .focusedSceneValue(\.saveAction, saveAction)
+      .focusedSceneValue(\.openFile) { @MainActor in activeSheet = .fileBrowser }
+      .focusedSceneValue(\.viewOutput) { @MainActor in activeSheet = .output }
       .onOpenURL { url in
         if url.scheme == "ruckus", url.host == "refresh" {
           guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
@@ -130,7 +133,7 @@ struct ContentView: View {
       options: AsyncButtonOption.allButCancel,
       action: { await store.revert() },
       label: { Label("Revert", systemImage: "arrow.counterclockwise") })
-    .disabled(store.activeDocument?.path == nil || store.activeDocument?.isDirty != true)
+    .disabled(store.activeDocument?.canRevert != true)
     Divider()
     Button {
       editorFindInteraction?.presentFindNavigator(showingReplace: false)
@@ -179,7 +182,7 @@ struct ContentView: View {
         Label("Output", systemImage: "terminal")
           .labelStyle(.iconOnly)
       }
-      .disabled(store.activeDocument?.output.length ?? 0 == 0)
+      .disabled(store.activeDocument?.hasOutput != true)
     }
     ToolbarItem(placement: .primaryAction) {
       AsyncButton(

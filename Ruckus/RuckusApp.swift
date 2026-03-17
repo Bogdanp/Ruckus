@@ -12,5 +12,8 @@ struct RuckusApp: App {
         .environment(EditorStore.shared)
         .environment(EditorSettings.shared)
     }
+    .commands {
+      AppCommands()
+    }
   }
 }

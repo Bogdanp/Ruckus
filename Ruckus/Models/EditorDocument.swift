@@ -28,6 +28,9 @@ class EditorDocument: Identifiable {
     self.code = code
   }
 
+  var canRevert: Bool { path != nil && isDirty }
+  var hasOutput: Bool { output.length > 0 }
+
   func appendOutput(_ text: String, stream: Stream) {
     let color: UIColor = switch stream {
     case .stdout: .label
