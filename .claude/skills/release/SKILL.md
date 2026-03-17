@@ -24,7 +24,7 @@ user_invocable: true
    user-facing changes — skip CI, refactor, and internal-only commits. Keep
    each entry to one short line.
 
-4. **Write the changelog.** Create `doc/changelogs/<BUILD>.md` where `<BUILD>`
+4. **Write the changelog.** Create `docs/changelogs/<BUILD>.md` where `<BUILD>`
    is `NEW` formatted as `%05d` (e.g. build 4 → `00004`). Use this format:
 
    ```markdown
