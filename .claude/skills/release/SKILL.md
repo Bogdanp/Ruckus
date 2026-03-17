@@ -2,8 +2,7 @@
 name: release
 description: |
   Prepare a release by bumping the build number, collecting user-facing
-  changes into a changelog, and committing the result. Invoked with
-  "/release".
+  changes into a changelog, and committing the result.
 user_invocable: true
 ---
 
