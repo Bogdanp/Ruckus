@@ -56,15 +56,18 @@ struct AsyncButton<Label>: View where Label: View {
     task?.cancel()
     task = Task {
       running = true
-      let progressTask = Task {
-        try await Task.sleep(for: .milliseconds(250))
-        withAnimation {
-          loading = true
+      var progressTask: Task<Void, any Error>?
+      if options.contains(.showsProgressView) {
+        progressTask = Task {
+          try await Task.sleep(for: .milliseconds(250))
+          withAnimation {
+            loading = true
+          }
         }
       }
       await action()
       guard !Task.isCancelled else { return }
-      progressTask.cancel()
+      progressTask?.cancel()
       withAnimation {
         loading = false
         running = false

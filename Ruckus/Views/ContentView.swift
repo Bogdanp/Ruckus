@@ -126,11 +126,9 @@ struct ContentView: View {
       Label("Share...", systemImage: "square.and.arrow.up")
     }
     .disabled(store.activeDocument == nil)
-    Button {
-      Task { await store.revert() }
-    } label: {
+    AsyncButton(action: { await store.revert() }, options: [.disabledWhileRunning], label: {
       Label("Revert", systemImage: "arrow.counterclockwise")
-    }
+    })
     .disabled(store.activeDocument?.path == nil || store.activeDocument?.isDirty != true)
     Divider()
     Button {
@@ -139,11 +137,9 @@ struct ContentView: View {
       Label("Find...", systemImage: "magnifyingglass")
     }
     .disabled(store.activeDocument == nil)
-    Button {
-      Task { await store.formatActiveDocument() }
-    } label: {
+    AsyncButton(action: { await store.formatActiveDocument() }, options: [.disabledWhileRunning], label: {
       Label("Format", systemImage: "text.alignleft")
-    }
+    })
     .keyboardShortcut("i", modifiers: [.command, .shift])
     .disabled(store.activeDocument == nil)
     Divider()
@@ -185,19 +181,15 @@ struct ContentView: View {
     }
     ToolbarItem(placement: .primaryAction) {
       if store.activeDocument?.isEvaluating == true {
-        Button {
-          Task { await store.stopExecution() }
-        } label: {
+        AsyncButton(action: { await store.stopExecution() }, options: [.disabledWhileRunning], label: {
           Label("Stop", systemImage: "stop.fill")
             .labelStyle(.iconOnly)
-        }
+        })
       } else {
-        Button {
-          Task { await store.execute() }
-        } label: {
+        AsyncButton(action: { await store.execute() }, options: [.disabledWhileRunning], label: {
           Label("Run", systemImage: "play.fill")
             .labelStyle(.iconOnly)
-        }
+        })
         .disabled(store.activeDocument == nil || store.activeDocument?.isEvaluating == true)
       }
     }
