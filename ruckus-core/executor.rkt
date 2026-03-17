@@ -60,7 +60,7 @@
   (define document-spec `',document-id)
   (parameterize ([current-module-declare-name (make-resolved-module-path document-id)]
                  [current-module-name-resolver (make-collects-resolver)]
-                 [current-namespace (make-base-empty-namespace)]
+                 [current-namespace (make-base-namespace)]
                  [current-directory document-dir])
     (namespace-require 'ruckus/openssl)
     (eval
