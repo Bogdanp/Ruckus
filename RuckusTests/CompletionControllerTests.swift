@@ -1,4 +1,5 @@
 import Testing
+import UIKit
 
 @testable import Ruckus
 
@@ -76,5 +77,75 @@ struct CompletionControllerTests {
   @Test func onlyDelimiters() {
     let ids = controller.scanIdentifiers(in: "()[]  \n\t")
     #expect(ids.isEmpty)
+  }
+
+  // MARK: - setPopover / tearDown
+
+  @Test func setPopoverStoresPopover() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+    #expect(ctrl.popover === popover)
+  }
+
+  @Test func tearDownRemovesPopover() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+    ctrl.tearDown()
+    #expect(ctrl.popover == nil)
+  }
+
+  // MARK: - dismiss
+
+  @Test func dismissHidesPopover() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+    popover.update(items: ["define"], prefix: "d")
+    #expect(!popover.isHidden)
+
+    ctrl.dismiss()
+    #expect(popover.isHidden)
+  }
+
+  // MARK: - updatePalette
+
+  @Test func updatePaletteDelegatesToPopover() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+    ctrl.updatePalette(.dracula)
+    #expect(popover.backgroundColor == ColorPalette.dracula.gutterBackground)
+  }
+
+  // MARK: - attachIfNeeded
+
+  @Test func attachIfNeededAddsPopoverToWindow() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+
+    guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+      return
+    }
+    let window = UIWindow(windowScene: scene)
+    ctrl.attachIfNeeded(to: window)
+    #expect(popover.superview === window)
+  }
+
+  @Test func attachIfNeededSkipsWhenAlreadyAttached() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+
+    guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+      return
+    }
+    let window = UIWindow(windowScene: scene)
+    ctrl.attachIfNeeded(to: window)
+    let subviewCount = window.subviews.count
+    ctrl.attachIfNeeded(to: window)
+    #expect(window.subviews.count == subviewCount)
   }
 }

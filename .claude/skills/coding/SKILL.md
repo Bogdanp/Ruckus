@@ -8,6 +8,10 @@ alwaysApply: true
 
 - Only write comments when they are absolutely necessary to explain a concept
   or a behavior, not for things that you can read the code and understand.
+- It's OK to use empty lines to separate logical blocks of code, but
+  avoid unnecessary empty lines otherwise.
+- Simplify boolean expressions, avoid pleonasms line
+  `#expect(expression == true)` or `#expect(expression == false)`.
 
 ## Swift Logging Style
 

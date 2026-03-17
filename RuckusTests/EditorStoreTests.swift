@@ -151,4 +151,102 @@ struct EditorStoreTests {
     store.close(store.documents[0])
     #expect(store.activeDocument?.title == "b.rkt")
   }
+
+  // MARK: - newDocument
+
+  @Test
+  func newDocumentAddsUntitledDocument() {
+    let store = EditorStore()
+    store.newDocument()
+    #expect(store.documents.count == 1)
+    #expect(store.documents[0].title == "Untitled")
+    #expect(store.documents[0].code.contains("#lang racket/base"))
+  }
+
+  @Test
+  func newDocumentSetsItAsActive() {
+    let store = EditorStore()
+    store.newDocument()
+    #expect(store.activeDocument != nil)
+    #expect(store.activeDocument?.id == store.documents[0].id)
+  }
+
+  @Test
+  func newDocumentAppendsToExistingDocuments() {
+    let store = makeStore(paths: ["/files/a.rkt"])
+    let oldCount = store.documents.count
+    store.newDocument()
+    #expect(store.documents.count == oldCount + 1)
+    #expect(store.activeDocument?.title == "Untitled")
+  }
+
+  // MARK: - selectDocument
+
+  @Test
+  func selectDocumentChangesActiveDocument() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt"])
+    store.selectDocument(store.documents[0])
+    #expect(store.activeDocument?.title == "a.rkt")
+
+    store.selectDocument(store.documents[1])
+    #expect(store.activeDocument?.title == "b.rkt")
+  }
+
+  // MARK: - activeDocument
+
+  @Test
+  func activeDocumentReturnsNilWhenNoDocuments() {
+    let store = EditorStore()
+    #expect(store.activeDocument == nil)
+  }
+
+  @Test
+  func activeDocumentReturnsCorrectDocument() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt"])
+    store.selectDocument(store.documents[0])
+    #expect(store.activeDocument === store.documents[0])
+  }
+
+  // MARK: - close creates new doc when all closed
+
+  @Test
+  func closeLastDocumentCreatesNewUntitled() {
+    let store = EditorStore()
+    store.newDocument()
+    let doc = store.documents[0]
+    store.close(doc)
+    #expect(store.documents.count == 1)
+    #expect(store.documents[0].title == "Untitled")
+    #expect(store.activeDocument != nil)
+  }
+
+  // MARK: - documents didSet updates activeDocumentID
+
+  @Test
+  func removingActiveDocumentFallsBackToLast() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt"])
+    store.selectDocument(store.documents[0])
+    store.close(store.documents[0])
+    #expect(store.activeDocument?.title == "b.rkt")
+  }
+
+  // MARK: - cleanupTempFile
+
+  @Test
+  func cleanupTempFileNoOpWithoutTempPath() {
+    let store = EditorStore()
+    let doc = EditorDocument()
+    store.cleanupTempFile(doc)
+    #expect(doc.tempPath == nil)
+  }
+
+  // MARK: - relativePath
+
+  @Test
+  func relativePathReturnsNilForDocWithoutPath() async {
+    let store = EditorStore()
+    let doc = EditorDocument()
+    let result = await store.relativePath(for: doc)
+    #expect(result == nil)
+  }
 }
