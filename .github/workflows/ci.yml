@@ -224,7 +224,6 @@ jobs:
         run: |
           xcodebuild test -workspace Ruckus.xcworkspace -scheme Ruckus \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-            -enableCodeCoverage YES \
             -resultBundlePath TestResults.xcresult | xcpretty
       - name: Coverage summary
         run: xcrun xccov view --report TestResults.xcresult
