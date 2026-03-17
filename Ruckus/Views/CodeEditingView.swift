@@ -173,6 +173,10 @@ struct CodeEditingView: UIViewRepresentable {
       completionController.dismiss()
       highlightController.clearMatchState()
       highlightController.updateBracketHighlights(in: textView)
+      // Keep the forced layout ahead of saved-range restoration. Runestone defers the
+      // selection-change delegate callback until layoutSubviews, and flushing that callback
+      // with an off-viewport restored caret can ask for caret geometry before the target
+      // line fragment tree exists. See docs/notes/switch-document-selection-layout.md.
       textView.layoutIfNeeded()
       let savedRange = document.savedSelectedRange ?? NSRange(location: 0, length: 0)
       let textLength = (textView.text as NSString).length
