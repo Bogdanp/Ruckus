@@ -14,7 +14,7 @@ final class DocumentObserver {
   func observeCode(of document: EditorDocument, in textView: TextView) {
     let expectedGeneration = generation
     nonisolated(unsafe) let document = document
-    nonisolated(unsafe) weak let weakDocument = document
+    nonisolated(unsafe) weak var weakDocument = document
     withObservationTracking {
       _ = document.code
     } onChange: { [weak self, weak textView] in
