@@ -312,6 +312,9 @@ struct CodeEditingViewTests {
     let textView = makeTextView(text: "initial")
     coord.documentObserver.currentDocument = doc
 
+    coord.documentObserver.onCodeChanged = { textView, code in
+      textView.text = code
+    }
     coord.documentObserver.observeCode(of: doc, in: textView)
 
     // External change to document.

@@ -24,6 +24,15 @@ final class HighlightController {
     }
   }
 
+  func refreshBracketHighlights(in textView: TextView) {
+    refreshBracketHighlights(text: textView.text, in: textView)
+  }
+
+  func refreshBracketHighlights(text: String, in textView: TextView) {
+    clearMatchState()
+    updateBracketHighlights(text: text, in: textView)
+  }
+
   func updateBracketHighlights(in textView: TextView) {
     updateBracketHighlights(text: textView.text, in: textView)
   }

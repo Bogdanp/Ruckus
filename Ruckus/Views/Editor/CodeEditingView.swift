@@ -46,8 +46,12 @@ struct CodeEditingView: UIViewRepresentable {
     coordinator.currentFont = settings.font
     coordinator.currentThemeName = settings.themeName
     coordinator.highlightController.applyColors(from: settings)
+    coordinator.documentObserver.onCodeChanged = { [weak coordinator] textView, code in
+      textView.text = code
+      coordinator?.highlightController.refreshBracketHighlights(text: code, in: textView)
+    }
     coordinator.documentObserver.observeCode(of: document, in: textView)
-    coordinator.highlightController.updateBracketHighlights(in: textView)
+    coordinator.highlightController.refreshBracketHighlights(in: textView)
 
     return textView
   }
@@ -116,7 +120,7 @@ struct CodeEditingView: UIViewRepresentable {
     }
 
     if highlightSettingsChanged {
-      coordinator.highlightController.updateBracketHighlights(in: textView)
+      coordinator.highlightController.refreshBracketHighlights(in: textView)
     }
 
     if coordinator.completionController.allCompletions != completions {
@@ -202,8 +206,7 @@ struct CodeEditingView: UIViewRepresentable {
       documentObserver.currentDocument = document
       documentObserver.observeCode(of: document, in: textView)
       completionController.dismiss()
-      highlightController.clearMatchState()
-      highlightController.updateBracketHighlights(in: textView)
+      highlightController.refreshBracketHighlights(in: textView)
       // Keep the forced layout ahead of saved-range restoration. Runestone defers the
       // selection-change delegate callback until layoutSubviews, and flushing that callback
       // with an off-viewport restored caret can ask for caret geometry before the target
@@ -225,8 +228,7 @@ struct CodeEditingView: UIViewRepresentable {
       currentDocument.code = text
       currentDocument.isDirty = true
       didType = true
-      highlightController.clearMatchState()
-      highlightController.updateBracketHighlights(text: text, in: textView)
+      highlightController.refreshBracketHighlights(text: text, in: textView)
       completionController.updatePopover(text: text, for: textView)
     }
 
