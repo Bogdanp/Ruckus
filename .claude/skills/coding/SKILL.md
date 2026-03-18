@@ -12,6 +12,12 @@ description: >
 - Simplify boolean expressions, avoid pleonasms line
   `#expect(expression == true)` or `#expect(expression == false)`.
 
+## Racket
+
+- When a procedure has many positional arguments, you can use symbol
+  comments as a poor man's keywords. For example, instead of `(File p
+  s)` you can write `(File #;path p #;size s)`.
+
 ## Swift Logging Style
 
 - Use lower case messages with no punctuation in Logger calls.
