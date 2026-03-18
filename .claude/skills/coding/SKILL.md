@@ -1,7 +1,6 @@
 ---
 description: >
   General coding style preferences. Always active when writing or modifying code.
-alwaysApply: true
 ---
 
 # Coding Style
