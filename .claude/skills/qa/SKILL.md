@@ -4,7 +4,7 @@ description: |
   Use after making changes to visually validate the app in the iOS Simulator.
   Builds, installs, launches the app, then uses screenshots and accessibility
   descriptions to verify the change looks and behaves correctly.
-user_invocable: true
+user-invocable: true
 ---
 
 # QA — Visual Validation via iOS Simulator

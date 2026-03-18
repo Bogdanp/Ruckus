@@ -1,5 +1,5 @@
 ---
-description: >
+description: |
   General coding style preferences. Always active when writing or modifying code.
 ---
 
@@ -17,6 +17,26 @@ description: >
 - When a procedure has many positional arguments, you can use symbol
   comments as a poor man's keywords. For example, instead of `(File p
   s)` you can write `(File #;path p #;size s)`.
+
+## Swift Project Structure
+
+### Extensions
+
+Place Swift extensions in the appropriate folder:
+- `Ruckus/Backend/` — extensions on auto-generated backend types (e.g. `FilesystemEntry`, `File`, `Folder`)
+- `Ruckus/Extensions/` — extensions on standard library or framework types (e.g. `URL`)
+
+Name extension files as `TypeName+Feature.swift`.
+
+### Adding or Removing Swift Files
+
+Tuist auto-globs all `.swift` files under `Ruckus/` and `RuckusTests/` — you
+do NOT need to manually register new files in `Project.swift`. However, after
+adding or removing a file you must regenerate the Xcode project:
+
+    tuist generate --no-open
+
+Without this step, Xcode won't see the new file and the build will fail.
 
 ## Swift Logging Style
 

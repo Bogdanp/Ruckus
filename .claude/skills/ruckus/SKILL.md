@@ -4,7 +4,7 @@ description: |
   Use when building, testing, or linting the Ruckus iOS app, regenerating
   the Tuist project, running tests, or adding new Swift files. Covers
   xcodebuild, tuist, make, swiftlint, and test workflows.
-user_invocable: false
+user-invocable: false
 ---
 
 # Ruckus Build, Test, Lint & Tuist

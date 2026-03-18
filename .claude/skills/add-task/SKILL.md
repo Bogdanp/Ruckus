@@ -3,7 +3,7 @@ name: add-task
 description: |
   Add a new task to docs/tasks/. Use when the user wants to file a task,
   log a bug, or note a codebase issue for later. Invoked with "/add-task".
-user_invocable: true
+user-invocable: true
 ---
 
 # Add Task

@@ -4,7 +4,7 @@ description: |
   Use when working with the Racket backend, adding or modifying RPC methods,
   or understanding the Racket-Swift communication layer. Covers define-rpc,
   Backend.swift codegen, and the Noise RPC framework.
-user_invocable: false
+user-invocable: false
 ---
 
 # Ruckus Core (Racket Backend)

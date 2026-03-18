@@ -5,7 +5,7 @@ description: |
   still applies to the current code, discusses a plan with the operator, then
   implements the fix. Use when the user says "/task" followed by a task number
   or filename.
-user_invocable: true
+user-invocable: true
 ---
 
 # Perform Task
