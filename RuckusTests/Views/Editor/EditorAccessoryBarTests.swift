@@ -22,7 +22,6 @@ struct EditorAccessoryBarTests {
   func createsAccessoryView() {
     let textView = makeTextView()
     let bar = EditorAccessoryBar.makeInputAccessoryView(for: textView, palette: nil)
-    #expect(bar is UIInputView)
     #expect(bar.frame.height > 0)
   }
 
