@@ -27,16 +27,16 @@ struct CodeEditingView: UIViewRepresentable {
     textView.gutterLeadingPadding = 8
     textView.gutterTrailingPadding = 5
     textView.isFindInteractionEnabled = true
-    textView.inputAccessoryView = EditorAccessoryBar.makeInputAccessoryView(
-      for: textView, palette: settings.colorPalette
-    )
+    let coordinator = context.coordinator
+    coordinator.currentPalette = settings.colorPalette
+    coordinator.startObservingKeyboard(for: textView)
+    coordinator.applyAccessoryBar(to: textView)
     let theme = EditorTheme(font: settings.font, palette: settings.colorPalette)
     let state = TextViewState(text: document.code, theme: theme, language: .racket)
     textView.setState(state)
     textView.backgroundColor = theme.backgroundColor
     applyInsertionPointColor(to: textView)
 
-    let coordinator = context.coordinator
     let popover = CompletionPopover(font: settings.font) { suffix in
       textView.insertText(suffix)
     }
@@ -78,6 +78,7 @@ struct CodeEditingView: UIViewRepresentable {
 
   static func dismantleUIView(_ textView: TextView, coordinator: Coordinator) {
     coordinator.completionController.tearDown()
+    coordinator.stopObservingKeyboard()
   }
 
   func updateUIView(_ textView: TextView, context: Context) {
@@ -105,10 +106,8 @@ struct CodeEditingView: UIViewRepresentable {
 
     if themeChanged {
       applyInsertionPointColor(to: textView)
-      textView.inputAccessoryView = EditorAccessoryBar.makeInputAccessoryView(
-        for: textView, palette: settings.colorPalette
-      )
-      textView.reloadInputViews()
+      coordinator.currentPalette = settings.colorPalette
+      coordinator.applyAccessoryBar(to: textView)
       coordinator.completionController.updateFont(font)
       coordinator.completionController.updatePalette(settings.colorPalette)
       coordinator.currentFont = font
@@ -140,6 +139,9 @@ struct CodeEditingView: UIViewRepresentable {
     let documentObserver = DocumentObserver()
     var currentFont: UIFont?
     var currentThemeName: ColorThemeName?
+    var currentPalette: ColorPalette?
+    let keyboardObserver: HardwareKeyboardObserving
+    var hasHardwareKeyboard: Bool { keyboardObserver.isConnected }
     private var didType = false
     private let indenter = RacketIndenter()
 
@@ -148,8 +150,36 @@ struct CodeEditingView: UIViewRepresentable {
     ]
     private static let closers: Set<String> = Set(autoPairs.values)
 
-    init(document: EditorDocument) {
+    init(
+      document: EditorDocument,
+      keyboardObserver: HardwareKeyboardObserving = GCHardwareKeyboardObserver()
+    ) {
       self.documentObserver.currentDocument = document
+      self.keyboardObserver = keyboardObserver
+    }
+
+    func startObservingKeyboard(for textView: TextView) {
+      keyboardObserver.startObserving { [weak self, weak textView] _ in
+        MainActor.assumeIsolated {
+          guard let self, let textView else { return }
+          self.applyAccessoryBar(to: textView)
+        }
+      }
+    }
+
+    func applyAccessoryBar(to textView: TextView) {
+      if hasHardwareKeyboard {
+        textView.inputAccessoryView = nil
+      } else {
+        textView.inputAccessoryView = EditorAccessoryBar.makeInputAccessoryView(
+          for: textView, palette: currentPalette
+        )
+      }
+      textView.reloadInputViews()
+    }
+
+    func stopObservingKeyboard() {
+      keyboardObserver.stopObserving()
     }
 
     func switchDocument(
