@@ -3,6 +3,7 @@ description: |
   General coding style preferences. Always active when writing or modifying code.
   When writing or modifying Racket code, also load the racket-coding skill.
   When writing or modifying Swift code, also load the swift-coding skill.
+user-invocable: false
 ---
 
 # Coding Style

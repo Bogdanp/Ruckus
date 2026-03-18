@@ -2,6 +2,7 @@
 description: |
   Swift coding conventions and project structure. Use when writing or modifying
   Swift files.
+user-invocable: false
 ---
 
 # Swift Coding Style

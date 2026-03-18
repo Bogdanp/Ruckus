@@ -1,6 +1,7 @@
 ---
 description: |
   Racket coding conventions. Use when writing or modifying Racket (.rkt) files.
+user-invocable: false
 ---
 
 # Racket Coding Style
