@@ -17,6 +17,7 @@ struct TabBarItemContent: View {
         Circle()
           .fill(isActive ? Color.accentColor : Color(.secondaryLabel))
           .frame(width: 5, height: 5)
+          .accessibilityLabel("Unsaved changes")
       }
       if isActive {
         Button(action: onClose) {
@@ -27,6 +28,9 @@ struct TabBarItemContent: View {
             .background(Color(.quaternarySystemFill), in: .circle)
         }
         .buttonStyle(.plain)
+        // Negative inset expands the tap target beyond the 16x16 visual frame.
+        .contentShape(Circle().inset(by: -8))
+        .accessibilityLabel("Close tab")
       }
     }
     .padding(.leading, 10)

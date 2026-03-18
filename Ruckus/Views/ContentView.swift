@@ -168,7 +168,8 @@ struct ContentView: View {
       Button {
         activeSheet = .settings
       } label: {
-        Image(systemName: "gearshape")
+        Label("Settings", systemImage: "gearshape")
+          .labelStyle(.iconOnly)
       }
     }
   }
