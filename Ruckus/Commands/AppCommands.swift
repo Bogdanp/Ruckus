@@ -29,20 +29,20 @@ struct AppCommands: Commands {
         Label("Save", systemImage: "doc.badge.arrow.up")
       }
       .keyboardShortcut("s")
-      .disabled(saveAction == nil || store.activeDocument == nil)
+      .disabled(saveAction == nil || !store.hasActiveDocument)
       Button {
         saveAction?.saveAs()
       } label: {
         Label("Save As...", systemImage: "doc.badge.plus")
       }
       .keyboardShortcut("s", modifiers: [.command, .shift])
-      .disabled(saveAction == nil || store.activeDocument == nil)
+      .disabled(saveAction == nil || !store.hasActiveDocument)
       Button {
         Task { await store.revert() }
       } label: {
         Label("Revert", systemImage: "arrow.counterclockwise")
       }
-      .disabled(store.activeDocument?.canRevert != true)
+      .disabled(!store.canRevert)
     }
     CommandGroup(replacing: .toolbar) {
       Button {
@@ -51,7 +51,7 @@ struct AppCommands: Commands {
         Label("View Output...", systemImage: "terminal")
       }
       .keyboardShortcut("o", modifiers: [.command, .option])
-      .disabled(store.activeDocument?.hasOutput != true)
+      .disabled(!store.hasOutput)
     }
     CommandMenu("Run") {
       Button {
@@ -60,14 +60,14 @@ struct AppCommands: Commands {
         Label("Run", systemImage: "play.fill")
       }
       .keyboardShortcut("r")
-      .disabled(store.activeDocument == nil || store.activeDocument?.isEvaluating == true)
+      .disabled(!store.canExecute)
       Button {
         Task { await store.stopExecution() }
       } label: {
         Label("Stop", systemImage: "stop.fill")
       }
       .keyboardShortcut(".", modifiers: .command)
-      .disabled(store.activeDocument?.isEvaluating != true)
+      .disabled(!store.isExecuting)
     }
   }
 }

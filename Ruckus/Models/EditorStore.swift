@@ -26,6 +26,12 @@ class EditorStore {
     return documents.first { $0.id == id }
   }
 
+  var hasActiveDocument: Bool { activeDocument != nil }
+  var canRevert: Bool { activeDocument?.canRevert ?? false }
+  var canExecute: Bool { activeDocument != nil && activeDocument?.isEvaluating != true }
+  var isExecuting: Bool { activeDocument?.isEvaluating ?? false }
+  var hasOutput: Bool { activeDocument?.hasOutput ?? false }
+
   func reorderDocuments(to ids: [UUID]) {
     var reordered: [EditorDocument] = []
     for id in ids {

@@ -120,33 +120,33 @@ struct ContentView: View {
     Button(action: saveAction.save) {
       Label("Save", systemImage: "doc.badge.arrow.up")
     }
-    .disabled(store.activeDocument == nil)
+    .disabled(!store.hasActiveDocument)
     Button(action: saveAction.saveAs) {
       Label("Save As...", systemImage: "doc.badge.plus")
     }
-    .disabled(store.activeDocument == nil)
+    .disabled(!store.hasActiveDocument)
     Button(action: shareAction.share) {
       Label("Share...", systemImage: "square.and.arrow.up")
     }
-    .disabled(store.activeDocument == nil)
+    .disabled(!store.hasActiveDocument)
     AsyncButton(
       options: AsyncButtonOption.allButCancel,
       action: { await store.revert() },
       label: { Label("Revert", systemImage: "arrow.counterclockwise") })
-    .disabled(store.activeDocument?.canRevert != true)
+    .disabled(!store.canRevert)
     Divider()
     Button {
       editorFindInteraction?.presentFindNavigator(showingReplace: false)
     } label: {
       Label("Find...", systemImage: "magnifyingglass")
     }
-    .disabled(store.activeDocument == nil)
+    .disabled(!store.hasActiveDocument)
     AsyncButton(
       options: AsyncButtonOption.allButCancel,
       action: { await store.formatActiveDocument() },
       label: { Label("Format", systemImage: "text.alignleft") })
     .keyboardShortcut("i", modifiers: [.command, .shift])
-    .disabled(store.activeDocument == nil)
+    .disabled(!store.hasActiveDocument)
     Divider()
     Button {
       editorUndoManager?.undo()
@@ -182,20 +182,20 @@ struct ContentView: View {
         Label("Output", systemImage: "terminal")
           .labelStyle(.iconOnly)
       }
-      .disabled(store.activeDocument?.hasOutput != true)
+      .disabled(!store.hasOutput)
     }
     ToolbarItem(placement: .primaryAction) {
       AsyncButton(
         options: AsyncButtonOption.allButCancel.subtracting([.showsSuccessIcon]),
         action: {
-          if store.activeDocument?.isEvaluating == true {
+          if store.isExecuting {
             await store.stopExecution()
           } else {
             await store.execute()
           }
         },
         label: {
-          if store.activeDocument?.isEvaluating == true {
+          if store.isExecuting {
             Label("Stop", systemImage: "stop.fill")
               .labelStyle(.iconOnly)
           } else {
@@ -203,7 +203,7 @@ struct ContentView: View {
               .labelStyle(.iconOnly)
           }
         })
-      .disabled(store.activeDocument == nil)
+      .disabled(!store.hasActiveDocument)
     }
   }
 }
