@@ -211,17 +211,19 @@ jobs:
           path: ../Noise
       - name: Create Local.xcconfig
         run: echo 'DEVELOPMENT_TEAM = DUMMY' > xcconfigs/Local.xcconfig
-      - name: Install Tuist
-        run: brew install tuist
+      - name: Install tools
+        run: brew install tuist swiftlint
       - name: Generate project
         run: tuist install && tuist generate --no-open
       - name: Build
         run: |
+          set -o pipefail
           xcodebuild build -workspace Ruckus.xcworkspace -scheme Ruckus \
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO | xcpretty
       - name: Test
         run: |
+          set -o pipefail
           xcodebuild test -workspace Ruckus.xcworkspace -scheme Ruckus \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             -resultBundlePath TestResults.xcresult | xcpretty
