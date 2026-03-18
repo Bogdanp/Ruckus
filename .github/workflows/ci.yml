@@ -204,7 +204,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: ruckus-core
-          path: .
+          path: Ruckus
       - uses: actions/download-artifact@v8
         with:
           name: noise
