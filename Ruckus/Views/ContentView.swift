@@ -141,6 +141,12 @@ struct ContentView: View {
       Label("Find...", systemImage: "magnifyingglass")
     }
     .disabled(!store.hasActiveDocument)
+    Button {
+      editorFindInteraction?.presentFindNavigator(showingReplace: true)
+    } label: {
+      Label("Find and Replace...", systemImage: "arrow.left.arrow.right")
+    }
+    .disabled(!store.hasActiveDocument)
     AsyncButton(
       options: AsyncButtonOption.allButCancel,
       action: { await store.formatActiveDocument() },

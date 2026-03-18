@@ -240,6 +240,10 @@ struct CodeEditingView: UIViewRepresentable {
       highlightController.updateMatchHighlight(in: textView)
     }
 
+    func textView(_ textView: TextView, canReplaceTextIn highlightedRange: HighlightedRange) -> Bool {
+      true
+    }
+
     func textView(
       _ textView: TextView,
       shouldChangeTextIn range: NSRange,
