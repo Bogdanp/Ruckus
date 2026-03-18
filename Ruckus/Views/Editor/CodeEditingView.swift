@@ -21,6 +21,7 @@ struct CodeEditingView: UIViewRepresentable {
     textView.autocorrectionType = .no
     textView.smartQuotesType = .no
     textView.smartDashesType = .no
+    textView.keyboardDismissMode = .interactive
     disableWritingTools(on: textView)
     textView.indentStrategy = .space(length: 2)
     textView.textContainerInset = UIEdgeInsets(top: 8, left: 5, bottom: 8, right: 5)
