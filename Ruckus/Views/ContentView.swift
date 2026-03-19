@@ -78,9 +78,19 @@ struct ContentView: View {
         store.activeDocument?.hasUnseenOutput = false
         activeSheet = .output
       }
-      .focusedSceneValue(\.saveAction, saveAction)
-      .focusedSceneValue(\.openFile) { @MainActor in activeSheet = .fileBrowser }
-      .focusedSceneValue(\.viewOutput) { @MainActor in activeSheet = .output }
+      .modifier(FocusedCommandValues(
+        saveAction: saveAction,
+        openFile: { activeSheet = .fileBrowser },
+        viewOutput: { activeSheet = .output },
+        findAction: { editorFindInteraction?.presentFindNavigator(showingReplace: false) },
+        findAndReplaceAction: { editorFindInteraction?.presentFindNavigator(showingReplace: true) },
+        formatAction: { Task { await store.formatActiveDocument() } },
+        shareAction: { shareAction.share() },
+        closeAction: {
+          guard let doc = store.activeDocument else { return }
+          store.close(doc)
+        }
+      ))
       .onOpenURL { url in
         if url.scheme == "ruckus", url.host == "refresh" {
           guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
