@@ -146,7 +146,13 @@ let project = Project(
     .scheme(
       name: "Ruckus",
       buildAction: .buildAction(targets: ["Ruckus"]),
-      testAction: .targets(["RuckusTests"], options: .options(coverage: true)),
+      testAction: .targets(
+        ["RuckusTests"],
+        options: .options(
+          coverage: true,
+          codeCoverageTargets: ["Ruckus"]
+        )
+      ),
       runAction: .runAction(executable: "Ruckus"),
       archiveAction: .archiveAction(configuration: "Release")
     )
