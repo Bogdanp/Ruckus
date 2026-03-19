@@ -89,6 +89,36 @@ struct EditorDocumentTests {
     #expect(!doc.hasUnseenOutput)
   }
 
+  // MARK: - clearOutput
+
+  @Test
+  func clearOutputResetsToEmpty() {
+    let doc = EditorDocument()
+    doc.appendOutput("hello", stream: .stdout)
+    doc.clearOutput()
+    #expect(doc.output.length == 0)
+    #expect(!doc.hasOutput)
+  }
+
+  @Test
+  func clearOutputAllowsFreshAppend() {
+    let doc = EditorDocument()
+    doc.appendOutput("first", stream: .stdout)
+    doc.clearOutput()
+    doc.appendOutput("second", stream: .stderr)
+    #expect(doc.output.string == "second")
+  }
+
+  @Test
+  func clearOutputResetsHasUnseenOutputTrigger() {
+    let doc = EditorDocument()
+    doc.appendOutput("first", stream: .stdout)
+    doc.hasUnseenOutput = false
+    doc.clearOutput()
+    doc.appendOutput("after clear", stream: .stdout)
+    #expect(doc.hasUnseenOutput)
+  }
+
   // MARK: - identity
 
   @Test

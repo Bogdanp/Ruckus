@@ -2,11 +2,12 @@ import SwiftUI
 
 struct OutputSheetView: View {
   let text: NSAttributedString
+  let version: UInt64
   @State private var showShareSheet = false
 
   var body: some View {
     SheetNavigation(title: "Output") {
-      OutputTextView(text: text)
+      OutputTextView(text: text, version: version)
         .toolbar {
           ToolbarItem(placement: .topBarLeading) {
             Button {

@@ -149,7 +149,7 @@ class EditorStore {
         return
       }
     }
-    doc.output = NSAttributedString()
+    doc.clearOutput()
     doc.isEvaluating = true
     do {
       let id = try await Backend.shared.executeScript(atPath: path)

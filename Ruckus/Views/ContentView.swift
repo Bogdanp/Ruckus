@@ -57,7 +57,7 @@ struct ContentView: View {
         switch sheet {
         case .output:
           if let doc = store.activeDocument {
-            OutputSheetView(text: doc.output)
+            OutputSheetView(text: doc.output, version: doc.outputVersion)
           }
         case .settings:
           SettingsView()

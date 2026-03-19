@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 
 @Observable
+@MainActor
 class EditorDocument: Identifiable {
   enum Stream {
     case stdout
@@ -12,7 +13,9 @@ class EditorDocument: Identifiable {
   var title: String
   var path: String?
   var code: String
-  var output = NSAttributedString()
+  var output = NSMutableAttributedString()
+  private(set) var outputVersion: UInt64 = 0
+  @ObservationIgnored private var flushTask: Task<Void, Never>?
   var hasUnseenOutput = false
   var isDirty: Bool = false
   var isEvaluating: Bool = false
@@ -42,11 +45,33 @@ class EditorDocument: Identifiable {
       .font: outputFont
     ]
     let wasEmpty = output.length == 0
-    let mutable = NSMutableAttributedString(attributedString: output)
-    mutable.append(NSAttributedString(string: text, attributes: attrs))
-    output = mutable
+    output.append(NSAttributedString(string: text, attributes: attrs))
     if wasEmpty {
       hasUnseenOutput = true
+    }
+    scheduleFlush()
+  }
+
+  func clearOutput() {
+    flushTask?.cancel()
+    flushTask = nil
+    let range = NSRange(location: 0, length: output.length)
+    output.deleteCharacters(in: range)
+    notifyOutputChanged()
+  }
+
+  /// Bump the version counter to notify observers that `output` was mutated in place.
+  private func notifyOutputChanged() {
+    outputVersion &+= 1
+  }
+
+  private func scheduleFlush() {
+    guard flushTask == nil else { return }
+    flushTask = Task {
+      try? await Task.sleep(for: .milliseconds(16))
+      guard !Task.isCancelled else { return }
+      self.flushTask = nil
+      self.notifyOutputChanged()
     }
   }
 }

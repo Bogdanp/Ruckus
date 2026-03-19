@@ -3,6 +3,7 @@ import UIKit
 
 struct OutputTextView: UIViewRepresentable {
   let text: NSAttributedString
+  let version: UInt64
 
   func makeUIView(context: Context) -> UIScrollView {
     let textView = UITextView()
@@ -32,9 +33,9 @@ struct OutputTextView: UIViewRepresentable {
 
   func updateUIView(_ scrollView: UIScrollView, context: Context) {
     guard let textView = context.coordinator.textView else { return }
-    guard !text.isEqual(to: context.coordinator.lastText) else { return }
-    context.coordinator.lastText = text
-    textView.attributedText = text
+    guard version != context.coordinator.lastVersion else { return }
+    context.coordinator.lastVersion = version
+    textView.attributedText = NSAttributedString(attributedString: text)
     textView.textContainer.size.width = CGFloat.greatestFiniteMagnitude
     let size = textView.sizeThatFits(CGSize(
       width: CGFloat.greatestFiniteMagnitude,
@@ -54,7 +55,7 @@ struct OutputTextView: UIViewRepresentable {
 
   final class Coordinator: NSObject, UIScrollViewDelegate {
     weak var textView: UITextView?
-    var lastText: NSAttributedString = NSAttributedString()
+    var lastVersion: UInt64 = 0
     private var userHasScrolled = false
 
     func isAnchoredToBottom(_ scrollView: UIScrollView) -> Bool {
