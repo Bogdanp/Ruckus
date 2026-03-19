@@ -232,7 +232,6 @@ jobs:
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
-          xcode: true
-          xcode_archive_path: TestResults.xcresult
+          swift_project: Ruckus
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
