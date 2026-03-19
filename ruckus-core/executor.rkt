@@ -147,9 +147,8 @@
        (error 'get-execution "execution ~s not found" id))))
 
   (define (symbols st id)
-    (struct-define state st)
-    (let ([ex (get-execution st id)])
-      (values st (unbox (execution-symbols-box ex)))))
+    (define ex (get-execution st id))
+    (values st (unbox (execution-symbols-box ex))))
 
   (define (execute st path)
     (struct-define state st)
