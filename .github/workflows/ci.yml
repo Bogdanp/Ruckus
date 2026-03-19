@@ -229,7 +229,10 @@ jobs:
             -resultBundlePath TestResults.xcresult | xcpretty
       - name: Coverage summary
         run: xcrun xccov view --report TestResults.xcresult
-      - uses: actions/upload-artifact@v7
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          name: coverage
-          path: TestResults.xcresult
+          xcode: true
+          xcode_archive_path: TestResults.xcresult
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
