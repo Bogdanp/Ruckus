@@ -9,6 +9,9 @@ user-invocable: false
 - When a procedure has many positional arguments, you can use symbol
   comments as a poor man's keywords. For example, instead of `(File p
   s)` you can write `(File #;path p #;size s)`.
+- Avoid rightward shift -- when possible, prefer local `define`s
+  instead of `let` or similar. Sometimes a `let` is intentional in
+  order to shadow definitions.
 
 # Validation
 
