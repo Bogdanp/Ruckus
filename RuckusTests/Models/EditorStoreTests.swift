@@ -230,6 +230,27 @@ struct EditorStoreTests {
     #expect(store.activeDocument?.title == "b.rkt")
   }
 
+  // MARK: - canExecute
+
+  @Test
+  func canExecuteReturnsFalseWithNoActiveDocument() {
+    let store = EditorStore()
+    #expect(!store.canExecute)
+  }
+
+  @Test
+  func canExecuteReturnsTrueWhenNotEvaluating() {
+    let store = makeStore(paths: ["/files/a.rkt"])
+    #expect(store.canExecute)
+  }
+
+  @Test
+  func canExecuteReturnsFalseWhenEvaluating() {
+    let store = makeStore(paths: ["/files/a.rkt"])
+    store.activeDocument!.isEvaluating = true
+    #expect(!store.canExecute)
+  }
+
   // MARK: - cleanupTempFile
 
   @Test

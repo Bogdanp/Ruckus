@@ -28,7 +28,7 @@ class EditorStore {
 
   var hasActiveDocument: Bool { activeDocument != nil }
   var canRevert: Bool { activeDocument?.canRevert ?? false }
-  var canExecute: Bool { activeDocument != nil && activeDocument?.isEvaluating != true }
+  var canExecute: Bool { activeDocument.map { !$0.isEvaluating } ?? false }
   var isExecuting: Bool { activeDocument?.isEvaluating ?? false }
   var hasOutput: Bool { activeDocument?.hasOutput ?? false }
 
