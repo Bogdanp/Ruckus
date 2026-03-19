@@ -18,7 +18,7 @@ struct ExecuteScriptIntent: AppIntent {
     guard let root = ScriptManifest.rootPath() else {
       throw IntentError.message("No scripts available. Open the app first.")
     }
-    let fullPath = (root as NSString).appendingPathComponent(script)
+    let fullPath = root.appendingPathComponent(script)
     let store = EditorStore.shared
     try await store.open(path: fullPath)
     guard let doc = store.activeDocument else {

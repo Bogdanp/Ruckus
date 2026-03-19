@@ -192,7 +192,7 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
   private func createFolder() async {
     let name = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !name.isEmpty else { return }
-    let path = (currentDirectory as NSString).appendingPathComponent(name)
+    let path = currentDirectory.appendingPathComponent(name)
     do {
       try await Backend.shared.createDirectory(atPath: path)
       await loadEntries()

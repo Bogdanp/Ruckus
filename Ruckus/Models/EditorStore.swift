@@ -85,7 +85,7 @@ class EditorStore {
       guard !filename.contains("/"), !filename.contains("..") else {
         throw SaveError.invalidFilename
       }
-      path = (root as NSString).appendingPathComponent(filename)
+      path = root.appendingPathComponent(filename)
       doc.path = path
       doc.title = filename
     }
@@ -181,7 +181,7 @@ class EditorStore {
     let root = try? await Backend.shared.getRootPath()
     let doc = EditorDocument(title: filename, code: content)
     if let root {
-      let destPath = (root as NSString).appendingPathComponent(filename)
+      let destPath = root.appendingPathComponent(filename)
       do {
         try await Backend.shared.save(content, to: destPath)
       } catch {
@@ -249,7 +249,7 @@ class EditorStore {
     activeDocumentID = nil
     var restoredAny = false
     for relativePath in relativePaths {
-      let fullPath = (root as NSString).appendingPathComponent(relativePath)
+      let fullPath = root.appendingPathComponent(relativePath)
       let name = (relativePath as NSString).lastPathComponent
       do {
         let content = try await Backend.shared.readFile(atPath: fullPath)
@@ -327,7 +327,7 @@ class EditorStore {
       for entry in entries {
         switch entry {
         case .file(let file) where file.path.hasSuffix(".rkt"):
-          scripts.append(Self.relativePath(file.path, relativeTo: root))
+          scripts.append(file.path.relativePath(from: root))
         case .folder(let folder):
           queue.append(folder.path)
         default:
@@ -342,11 +342,7 @@ class EditorStore {
     guard let path = doc.path,
           let root = try? await Backend.shared.getRootPath(),
           path.hasPrefix(root) else { return nil }
-    return Self.relativePath(path, relativeTo: root)
-  }
-
-  private static func relativePath(_ path: String, relativeTo root: String) -> String {
-    String(path.dropFirst(root.count).drop(while: { $0 == "/" }))
+    return path.relativePath(from: root)
   }
 
   private func saveSession() {
@@ -368,12 +364,12 @@ class EditorStore {
     var relativePaths = [String]()
     for doc in documents {
       guard let path = doc.path, path.hasPrefix(root) else { continue }
-      relativePaths.append(Self.relativePath(path, relativeTo: root))
+      relativePaths.append(path.relativePath(from: root))
     }
     UserDefaults.standard.set(relativePaths, forKey: Self.openDocumentPathsKey)
     var activeRelative: String?
     if let doc = activeDocument, let path = doc.path, path.hasPrefix(root) {
-      activeRelative = Self.relativePath(path, relativeTo: root)
+      activeRelative = path.relativePath(from: root)
     }
     UserDefaults.standard.set(activeRelative, forKey: Self.activeDocumentPathKey)
   }

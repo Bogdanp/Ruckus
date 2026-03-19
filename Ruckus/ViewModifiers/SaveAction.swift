@@ -11,7 +11,7 @@ struct SaveAction: ViewModifier {
         SaveBrowserSheet(initialFilename: saveFilename) { directory, filename in
           guard let doc = store.activeDocument else { return }
           doc.title = filename
-          doc.path = (directory as NSString).appendingPathComponent(filename)
+          doc.path = directory.appendingPathComponent(filename)
           Task {
             do {
               try await store.save(doc)

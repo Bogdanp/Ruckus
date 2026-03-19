@@ -86,7 +86,7 @@ struct ContentView: View {
           guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                 let scriptId = components.queryItems?.first(where: { $0.name == "script" })?.value,
                 let root = ScriptManifest.rootPath() else { return }
-          let fullPath = (root as NSString).appendingPathComponent(scriptId)
+          let fullPath = root.appendingPathComponent(scriptId)
           Task {
             do {
               try await store.open(path: fullPath)

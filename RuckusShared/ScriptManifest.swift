@@ -16,7 +16,7 @@ enum ScriptManifest {
 
   static func remove(scriptAtPath path: String) {
     guard let store = defaults, let root = rootPath() else { return }
-    let relative = relativePath(path, from: root)
+    let relative = path.relativePath(from: root)
     var current = scripts()
     current.removeAll { $0 == relative }
     store.set(current, forKey: scriptsKey)
@@ -24,14 +24,10 @@ enum ScriptManifest {
 
   static func removeAll(underDirectoryAtPath path: String) {
     guard let store = defaults, let root = rootPath() else { return }
-    let prefix = relativePath(path, from: root) + "/"
+    let prefix = path.relativePath(from: root) + "/"
     var current = scripts()
     current.removeAll { $0.hasPrefix(prefix) }
     store.set(current, forKey: scriptsKey)
-  }
-
-  private static func relativePath(_ path: String, from root: String) -> String {
-    String(path.dropFirst(root.count).drop(while: { $0 == "/" }))
   }
 
   static func scripts() -> [String] {
