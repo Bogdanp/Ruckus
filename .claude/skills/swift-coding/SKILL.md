@@ -5,7 +5,7 @@ description: |
 user-invocable: false
 ---
 
-# Swift Coding Style
+# Coding Style
 
 ## Project Structure
 

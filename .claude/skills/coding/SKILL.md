@@ -1,8 +1,6 @@
 ---
 description: |
   General coding style preferences. Always active when writing or modifying code.
-  When writing or modifying Racket code, also load the racket-coding skill.
-  When writing or modifying Swift code, also load the swift-coding skill.
 user-invocable: false
 ---
 
@@ -14,3 +12,11 @@ user-invocable: false
   avoid unnecessary empty lines otherwise.
 - Simplify boolean expressions, avoid pleonasms like
   `#expect(expression == true)` or `#expect(expression == false)`.
+
+# Racket Coding
+
+- Refer to the `racket-coding` skill.
+
+# Swift Coding
+
+- Refer to the `swift-coding` skill.
