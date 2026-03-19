@@ -25,6 +25,18 @@ class EditorDocument: Identifiable {
   var savedContentOffset: CGPoint?
   var savedSelectedRange: NSRange?
 
+  nonisolated static let codeReplaced = Notification.Name("EditorDocumentCodeReplaced")
+  nonisolated static let codeReplacedKey = "code"
+
+  /// Request an undoable whole-document replacement. The active editor
+  /// observes this notification and applies the change through the text
+  /// view's editing API so that undo, redo, and dirty-tracking work.
+  func replaceCode(_ code: String) {
+    NotificationCenter.default.post(
+      name: Self.codeReplaced, object: self, userInfo: [Self.codeReplacedKey: code]
+    )
+  }
+
   init(title: String = "Untitled", path: String? = nil, code: String = "") {
     self.title = title
     self.path = path

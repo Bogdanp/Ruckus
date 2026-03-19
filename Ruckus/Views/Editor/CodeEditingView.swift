@@ -50,6 +50,7 @@ struct CodeEditingView: UIViewRepresentable {
       textView.text = code
       coordinator?.highlightController.refreshBracketHighlights(text: code, in: textView)
     }
+    coordinator.startObservingCodeReplaced(in: textView)
     coordinator.documentObserver.observeCode(of: document, in: textView)
     coordinator.highlightController.refreshBracketHighlights(in: textView)
 
@@ -84,6 +85,7 @@ struct CodeEditingView: UIViewRepresentable {
   static func dismantleUIView(_ textView: TextView, coordinator: Coordinator) {
     coordinator.completionController.tearDown()
     coordinator.stopObservingKeyboard()
+    coordinator.stopObservingCodeReplaced()
   }
 
   func updateUIView(_ textView: TextView, context: Context) {
@@ -150,6 +152,8 @@ struct CodeEditingView: UIViewRepresentable {
     private var didType = false
     private let indenter = RacketIndenter()
 
+    private var codeReplacedObserver: (any NSObjectProtocol)?
+
     private static let autoPairs: [String: String] = [
       "(": ")", "[": "]", "{": "}", "\"": "\""
     ]
@@ -185,6 +189,40 @@ struct CodeEditingView: UIViewRepresentable {
 
     func stopObservingKeyboard() {
       keyboardObserver.stopObserving()
+    }
+
+    func startObservingCodeReplaced(in textView: TextView) {
+      // queue: nil delivers synchronously on the posting thread. The
+      // posters (format, revert) are @MainActor, so the full chain —
+      // replace → textViewDidChange → doc.code update — completes before
+      // post() returns. Using .main would dispatch asynchronously, leaving
+      // a window where doc.code is stale.
+      codeReplacedObserver = NotificationCenter.default.addObserver(
+        forName: EditorDocument.codeReplaced,
+        object: nil,
+        queue: nil
+      ) { [weak self, weak textView] notification in
+        let doc = notification.object as? EditorDocument
+        let code = notification.userInfo?[EditorDocument.codeReplacedKey] as? String
+        MainActor.assumeIsolated {
+          guard let self, let textView, let doc, let code,
+                doc === self.documentObserver.currentDocument,
+                code != textView.text
+          else { return }
+          let fullRange = NSRange(location: 0, length: (textView.text as NSString).length)
+          let savedOffset = textView.selectedRange.location
+          textView.replace(fullRange, withText: code)
+          let newLength = (code as NSString).length
+          textView.selectedRange = NSRange(location: min(savedOffset, newLength), length: 0)
+        }
+      }
+    }
+
+    func stopObservingCodeReplaced() {
+      if let observer = codeReplacedObserver {
+        NotificationCenter.default.removeObserver(observer)
+        codeReplacedObserver = nil
+      }
     }
 
     func switchDocument(

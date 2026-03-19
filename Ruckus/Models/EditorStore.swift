@@ -201,7 +201,7 @@ class EditorStore {
     guard let doc = activeDocument else { return }
     do {
       let formatted = try await Backend.shared.formatProgram(doc.code)
-      doc.code = formatted
+      doc.replaceCode(formatted)
     } catch {
       doc.appendOutput("Format failed: \(error.localizedDescription)", stream: .stderr)
     }
@@ -211,8 +211,7 @@ class EditorStore {
     guard let doc = activeDocument, let path = doc.path else { return }
     do {
       let content = try await Backend.shared.readFile(atPath: path)
-      doc.code = content
-      doc.isDirty = false
+      doc.replaceCode(content)
     } catch {
       doc.appendOutput("Revert failed: \(error.localizedDescription)", stream: .stderr)
     }
