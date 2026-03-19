@@ -92,7 +92,7 @@ class EditorStore {
     try await Backend.shared.save(doc.code, to: path)
     doc.isDirty = false
     saveSession()
-    await refreshScriptManifest()
+    ScriptManifest.add(scriptAtPath: path)
   }
 
   func close(_ doc: EditorDocument) {
@@ -192,7 +192,9 @@ class EditorStore {
     documents.append(doc)
     activeDocumentID = doc.id
     saveSession()
-    await refreshScriptManifest()
+    if let destPath = doc.path {
+      ScriptManifest.add(scriptAtPath: destPath)
+    }
   }
 
   func formatActiveDocument() async {

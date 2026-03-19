@@ -14,6 +14,16 @@ enum ScriptManifest {
     store.set(scripts, forKey: scriptsKey)
   }
 
+  static func add(scriptAtPath path: String) {
+    guard let store = defaults, let root = rootPath() else { return }
+    let relative = path.relativePath(from: root)
+    var current = scripts()
+    if !current.contains(relative) {
+      current.append(relative)
+      store.set(current, forKey: scriptsKey)
+    }
+  }
+
   static func remove(scriptAtPath path: String) {
     guard let store = defaults, let root = rootPath() else { return }
     let relative = path.relativePath(from: root)
