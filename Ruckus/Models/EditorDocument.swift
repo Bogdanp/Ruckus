@@ -53,8 +53,7 @@ class EditorDocument: Identifiable {
   }
 
   func clearOutput() {
-    flushTask?.cancel()
-    flushTask = nil
+    cancelFlush()
     let range = NSRange(location: 0, length: output.length)
     output.deleteCharacters(in: range)
     notifyOutputChanged()
@@ -73,5 +72,10 @@ class EditorDocument: Identifiable {
       self.flushTask = nil
       self.notifyOutputChanged()
     }
+  }
+
+  private func cancelFlush() {
+    flushTask?.cancel()
+    flushTask = nil
   }
 }
