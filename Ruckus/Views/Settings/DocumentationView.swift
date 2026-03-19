@@ -3,7 +3,7 @@ import WebKit
 
 private let docIndexURL = Bundle.main.url(forResource: "doc/index", withExtension: "html", subdirectory: "racket")
 
-@Observable
+@MainActor @Observable
 final class DocNavigationState {
   var canGoBack = false
   var canGoForward = false
