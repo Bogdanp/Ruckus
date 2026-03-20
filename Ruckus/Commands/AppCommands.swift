@@ -82,7 +82,7 @@ struct AppCommands: Commands {
       .disabled(findAndReplaceAction == nil)
       Divider()
       Button {
-        Task { await formatAction?() }
+        formatAction?()
       } label: {
         Label("Format", systemImage: "text.alignleft")
       }
