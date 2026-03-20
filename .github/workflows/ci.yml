@@ -212,7 +212,7 @@ jobs:
       - name: Create Local.xcconfig
         run: echo 'DEVELOPMENT_TEAM = DUMMY' > xcconfigs/Local.xcconfig
       - name: Install tools
-        run: brew install tuist swiftlint
+        run: brew install tuist swiftlint xcresultparser
       - name: Generate project
         run: tuist install && tuist generate --no-open
       - name: Build
@@ -229,9 +229,12 @@ jobs:
             -resultBundlePath TestResults.xcresult | xcpretty
       - name: Coverage summary
         run: xcrun xccov view --report TestResults.xcresult
+      - name: Convert coverage
+        run: xcresultparser --output-format cobertura TestResults.xcresult >coverage.xml
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
-          swift_project: Ruckus
+          files: coverage.xml
+          disable_search: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
