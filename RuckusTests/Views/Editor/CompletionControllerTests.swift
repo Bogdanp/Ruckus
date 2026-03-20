@@ -1,3 +1,4 @@
+import Runestone
 import Testing
 import UIKit
 
@@ -147,5 +148,139 @@ struct CompletionControllerTests {
     let subviewCount = window.subviews.count
     ctrl.attachIfNeeded(to: window)
     #expect(window.subviews.count == subviewCount)
+  }
+
+  // MARK: - wordPrefix
+
+  @Test func wordPrefixAtEndOfWord() {
+    let prefix = controller.wordPrefix(in: "(display", cursorOffset: 8)
+    #expect(prefix == "display")
+  }
+
+  @Test func wordPrefixTooShort() {
+    let prefix = controller.wordPrefix(in: "(d", cursorOffset: 2)
+    #expect(prefix == "")
+  }
+
+  @Test func wordPrefixAtStartOfText() {
+    let prefix = controller.wordPrefix(in: "define", cursorOffset: 0)
+    #expect(prefix == "")
+  }
+
+  @Test func wordPrefixWithSpecialChars() {
+    let prefix = controller.wordPrefix(in: "string->num", cursorOffset: 11)
+    #expect(prefix == "string->num")
+  }
+
+  @Test func wordPrefixStopsAtDelimiter() {
+    let prefix = controller.wordPrefix(in: "(define foo", cursorOffset: 11)
+    #expect(prefix == "foo")
+  }
+
+  @Test func wordPrefixCursorInMiddle() {
+    let prefix = controller.wordPrefix(in: "display", cursorOffset: 4)
+    #expect(prefix == "disp")
+  }
+
+  @Test func wordPrefixCursorBeyondText() {
+    let prefix = controller.wordPrefix(in: "ab", cursorOffset: 100)
+    #expect(prefix == "ab")
+  }
+
+  // MARK: - updatePopover
+
+  private func makeTextView(text: String) -> TextView {
+    let view = TextView(frame: CGRect(x: 0, y: 0, width: 375, height: 667))
+    let theme = EditorTheme(font: .monospacedSystemFont(ofSize: 14, weight: .regular))
+    let state = TextViewState(text: text, theme: theme)
+    view.setState(state)
+
+    guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+      return view
+    }
+    let window = UIWindow(windowScene: scene)
+    window.addSubview(view)
+    view.frame = CGRect(x: 0, y: 0, width: 375, height: 667)
+    view.layoutIfNeeded()
+    return view
+  }
+
+  private func setCursor(_ textView: TextView, offset: Int) {
+    if let pos = textView.position(from: textView.beginningOfDocument, offset: offset) {
+      textView.selectedTextRange = textView.textRange(from: pos, to: pos)
+    }
+  }
+
+  private func popoverItemCount(_ popover: CompletionPopover) -> Int {
+    popover.tableView(UITableView(), numberOfRowsInSection: 0)
+  }
+
+  @Test func updatePopoverFiltersCompletions() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+    ctrl.allCompletions = ["define", "display", "displayln"]
+
+    let textView = makeTextView(text: "(dis")
+    setCursor(textView, offset: 4)
+
+    ctrl.updatePopover(text: "(dis", for: textView)
+
+    #expect(!popover.isHidden)
+    #expect(popoverItemCount(popover) == 2)
+  }
+
+  @Test func updatePopoverDismissesWhenNoMatches() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+    ctrl.allCompletions = ["define", "display"]
+
+    // Show popover first
+    let textView = makeTextView(text: "(dis")
+    setCursor(textView, offset: 4)
+    ctrl.updatePopover(text: "(dis", for: textView)
+    #expect(!popover.isHidden)
+
+    // Now type something with no matches
+    textView.text = "(xyz"
+    setCursor(textView, offset: 4)
+    ctrl.updatePopover(text: "(xyz", for: textView)
+
+    #expect(popover.isHidden)
+  }
+
+  @Test func updatePopoverDeduplicates() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+    // "helper" is in both allCompletions and the text
+    ctrl.allCompletions = ["helper", "hello"]
+
+    let text = "(helper-fn (hello (hel"
+    let textView = makeTextView(text: text)
+    setCursor(textView, offset: text.count)
+
+    ctrl.updatePopover(text: text, for: textView)
+
+    #expect(!popover.isHidden)
+    // "hel" prefix matches: "helper" (allCompletions), "hello" (allCompletions),
+    // "helper-fn" (document identifier) — 3 unique items
+    #expect(popoverItemCount(popover) == 3)
+  }
+
+  @Test func updatePopoverCapsAt20() {
+    let ctrl = CompletionController()
+    let popover = CompletionPopover { _ in }
+    ctrl.setPopover(popover)
+    ctrl.allCompletions = (1...30).map { "item\($0)" }
+
+    let textView = makeTextView(text: "(ite")
+    setCursor(textView, offset: 4)
+
+    ctrl.updatePopover(text: "(ite", for: textView)
+
+    #expect(!popover.isHidden)
+    #expect(popoverItemCount(popover) == 20)
   }
 }

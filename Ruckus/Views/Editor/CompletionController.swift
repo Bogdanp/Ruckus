@@ -103,14 +103,9 @@ final class CompletionController {
     return results
   }
 
-  private func currentWordPrefix(text: String, in textView: TextView) -> String {
-    guard let selectedRange = textView.selectedTextRange else { return "" }
-    let cursorPos = textView.offset(
-      from: textView.beginningOfDocument, to: selectedRange.start
-    )
-    guard cursorPos >= 0 else { return "" }
+  func wordPrefix(in text: String, cursorOffset: Int) -> String {
     let idx = text.index(
-      text.startIndex, offsetBy: min(cursorPos, text.count)
+      text.startIndex, offsetBy: min(cursorOffset, text.count)
     )
     var start = idx
     while start > text.startIndex {
@@ -121,5 +116,14 @@ final class CompletionController {
     }
     let prefix = String(text[start..<idx])
     return prefix.count >= 2 ? prefix : ""
+  }
+
+  private func currentWordPrefix(text: String, in textView: TextView) -> String {
+    guard let selectedRange = textView.selectedTextRange else { return "" }
+    let cursorPos = textView.offset(
+      from: textView.beginningOfDocument, to: selectedRange.start
+    )
+    guard cursorPos >= 0 else { return "" }
+    return wordPrefix(in: text, cursorOffset: cursorPos)
   }
 }
