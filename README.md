@@ -1,5 +1,8 @@
 # Ruckus
 
+[![CI](https://github.com/Bogdanp/Ruckus/actions/workflows/ci.yml/badge.svg)](https://github.com/Bogdanp/Ruckus/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Bogdanp/Ruckus/graph/badge.svg?token=LSSCXQP4O9)](https://codecov.io/gh/Bogdanp/Ruckus)
+
 Racket for iOS. The frontend is mostly vibe coded.
 
 ## Build
