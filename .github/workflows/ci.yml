@@ -219,16 +219,14 @@ jobs:
         run: tuist install && tuist generate --no-open
       - name: Build
         run: |
-          set -o pipefail
           xcodebuild build -workspace Ruckus.xcworkspace -scheme Ruckus \
             -destination 'generic/platform=iOS' \
-            CODE_SIGNING_ALLOWED=NO | xcpretty
+            CODE_SIGNING_ALLOWED=NO
       - name: Test
         run: |
-          set -o pipefail
           xcodebuild test -workspace Ruckus.xcworkspace -scheme Ruckus \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-            -resultBundlePath TestResults.xcresult | xcpretty
+            -resultBundlePath TestResults.xcresult
       - name: Coverage summary
         run: xcrun xccov view --report TestResults.xcresult
       - name: Convert coverage
