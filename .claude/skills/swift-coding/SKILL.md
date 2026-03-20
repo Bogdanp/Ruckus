@@ -39,6 +39,9 @@ Without this step, Xcode won't see the new file and the build will fail.
   It works in unit tests without mocking — call Backend methods directly.
   Do not inject closures, create protocols, or skip testing Backend-dependent
   code paths.
+- After adding new test files, run `tuist generate --no-open` before building
+  or running tests. Without this, the Xcode project won't include the new file
+  and the tests won't be discovered.
 
 ## Post-Change Verification
 

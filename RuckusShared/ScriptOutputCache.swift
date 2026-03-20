@@ -17,6 +17,12 @@ enum ScriptOutputCache {
     store?.set(Date().timeIntervalSince1970, forKey: keyPrefix + scriptId + timestampSuffix)
   }
 
+  static func remove(for scriptId: String) {
+    let store = defaults
+    store?.removeObject(forKey: keyPrefix + scriptId)
+    store?.removeObject(forKey: keyPrefix + scriptId + timestampSuffix)
+  }
+
   static func load(for scriptId: String) -> (output: String, date: Date)? {
     guard let store = defaults,
           let output = store.string(forKey: keyPrefix + scriptId) else {
