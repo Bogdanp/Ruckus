@@ -1,7 +1,7 @@
 import NoiseBackend
 
 extension Backend {
-  private nonisolated(unsafe) static let executorStepReady: Future<String, Void> = {
+  private static let executorStepReady: Future<String, Void> = {
     Backend.shared.installCallback(onExecutorStep: { executionId in
       Task { @MainActor in
         ExecutionStepper.shared.notify(executionId: executionId)
