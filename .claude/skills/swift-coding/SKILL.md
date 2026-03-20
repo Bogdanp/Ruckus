@@ -33,6 +33,13 @@ Without this step, Xcode won't see the new file and the build will fail.
 - Prefix log messages with `\(#function):` so the call site is visible.
 - Example: `Logger.backend.error("\(#function): failed to mark executor step installed: \(error)")`
 
+## Testing
+
+- `Backend.shared` runs Racket completely in-process (embedded via Noise RPC).
+  It works in unit tests without mocking — call Backend methods directly.
+  Do not inject closures, create protocols, or skip testing Backend-dependent
+  code paths.
+
 ## Post-Change Verification
 
 - After modifying Swift files, always run `swiftlint lint --quiet` on the
