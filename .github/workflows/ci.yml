@@ -183,6 +183,7 @@ jobs:
         run: |
           ./bin/pbraco pkg install --auto --skip-installed ../Noise/Racket/noise-serde-lib
           ./bin/pbraco pkg install --auto --skip-installed ./ruckus-core
+          ./bin/pbraco pkg install --auto --skip-installed ./ruckus-openssl
       - name: Build core
         run: make
       - name: Prepare distribution
