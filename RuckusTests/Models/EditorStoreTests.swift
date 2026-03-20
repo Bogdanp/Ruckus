@@ -7,6 +7,18 @@ import Testing
 @MainActor
 struct EditorStoreTests {
 
+  private func observeCodeReplacement(
+    for doc: EditorDocument
+  ) -> (capture: CodeCapture, token: NSObjectProtocol) {
+    let capture = CodeCapture()
+    let token = NotificationCenter.default.addObserver(
+      forName: EditorDocument.codeReplaced, object: doc, queue: nil
+    ) { notification in
+      capture.code = notification.userInfo?[EditorDocument.codeReplacedKey] as? String
+    }
+    return (capture, token)
+  }
+
   private func makeStore(paths: [String]) -> EditorStore {
     let store = EditorStore()
     for path in paths {
@@ -270,4 +282,215 @@ struct EditorStoreTests {
     let result = await store.relativePath(for: doc)
     #expect(result == nil)
   }
+
+  // MARK: - hasActiveDocument
+
+  @Test
+  func hasActiveDocumentFalseOnFreshStore() {
+    let store = EditorStore()
+    #expect(!store.hasActiveDocument)
+  }
+
+  @Test
+  func hasActiveDocumentTrueAfterNewDocument() {
+    let store = EditorStore()
+    store.newDocument()
+    #expect(store.hasActiveDocument)
+  }
+
+  // MARK: - canRevert
+
+  @Test
+  func canRevertFalseForUntitledDoc() {
+    let store = EditorStore()
+    store.newDocument()
+    #expect(!store.canRevert)
+  }
+
+  @Test
+  func canRevertTrueWhenDirtyWithPath() {
+    let store = makeStore(paths: ["/files/a.rkt"])
+    store.activeDocument!.isDirty = true
+    #expect(store.canRevert)
+  }
+
+  // MARK: - isExecuting
+
+  @Test
+  func isExecutingReflectsActiveDocument() {
+    let store = makeStore(paths: ["/files/a.rkt"])
+    #expect(!store.isExecuting)
+    store.activeDocument!.isEvaluating = true
+    #expect(store.isExecuting)
+  }
+
+  // MARK: - hasOutput
+
+  @Test
+  func hasOutputReflectsActiveDocument() {
+    let store = makeStore(paths: ["/files/a.rkt"])
+    #expect(!store.hasOutput)
+    store.activeDocument!.appendOutput("hello", stream: .stdout)
+    #expect(store.hasOutput)
+  }
+
+  // MARK: - open
+
+  @Test
+  func openCreatesDocumentFromFile() async throws {
+    let root = try await Backend.shared.getRootPath()
+    let path = root.appendingPathComponent("test-\(UUID().uuidString).rkt")
+    try await Backend.shared.save("#lang racket/base\n", to: path)
+    defer { Task { try? await Backend.shared.deleteFile(atPath: path) } }
+
+    let store = EditorStore()
+    try await store.open(path: path)
+
+    #expect(store.documents.count == 1)
+    #expect(store.activeDocument?.code == "#lang racket/base\n")
+    #expect(store.activeDocument?.path == path)
+  }
+
+  @Test
+  func openReusesExistingDocument() async throws {
+    let root = try await Backend.shared.getRootPath()
+    let path = root.appendingPathComponent("test-\(UUID().uuidString).rkt")
+    try await Backend.shared.save("#lang racket/base\n", to: path)
+    defer { Task { try? await Backend.shared.deleteFile(atPath: path) } }
+
+    let store = EditorStore()
+    try await store.open(path: path)
+    let firstDocId = store.activeDocument?.id
+    try await store.open(path: path)
+
+    #expect(store.documents.count == 1)
+    #expect(store.activeDocument?.id == firstDocId)
+  }
+
+  // MARK: - save
+
+  @Test
+  func saveUntitledDocument() async throws {
+    let store = EditorStore()
+    store.newDocument()
+    let doc = store.activeDocument!
+    doc.title = "test-\(UUID().uuidString)"
+
+    var savedPath: String?
+    defer {
+      if let path = savedPath {
+        Task { try? await Backend.shared.deleteFile(atPath: path) }
+      }
+    }
+
+    try await store.save(doc)
+    savedPath = doc.path
+
+    #expect(!doc.isDirty)
+    #expect(doc.path != nil)
+    #expect(doc.title.hasSuffix(".rkt"))
+
+    let content = try await Backend.shared.readFile(atPath: doc.path!)
+    #expect(content == doc.code)
+  }
+
+  // MARK: - execute
+
+  @Test
+  func executeRunsScript() async throws {
+    let root = try await Backend.shared.getRootPath()
+    let path = root.appendingPathComponent("test-\(UUID().uuidString).rkt")
+    try await Backend.shared.save("#lang racket/base\n(displayln \"hello\")\n", to: path)
+    defer { Task { try? await Backend.shared.deleteFile(atPath: path) } }
+
+    let store = EditorStore()
+    try await store.open(path: path)
+    let doc = store.activeDocument!
+
+    await store.execute()
+
+    let executionId = doc.executionId
+    #expect(executionId != nil)
+
+    if let executionId {
+      _ = try await ExecutionRegistry.shared.awaitCompletion(of: executionId)
+    }
+
+    #expect(!doc.isEvaluating)
+    #expect(doc.hasOutput)
+  }
+
+  // MARK: - formatActiveDocument
+
+  @Test
+  func formatActiveDocumentPostsFormattedCode() async {
+    let store = EditorStore()
+    store.newDocument()
+    let doc = store.activeDocument!
+    doc.code = "#lang racket/base\n(  +   1    2  )\n"
+
+    let (capture, token) = observeCodeReplacement(for: doc)
+    defer { NotificationCenter.default.removeObserver(token) }
+
+    await store.formatActiveDocument()
+
+    #expect(capture.code != nil)
+    #expect(capture.code?.contains("(+ 1 2)") == true)
+  }
+
+  // MARK: - revert
+
+  @Test
+  func revertRestoresFileContent() async throws {
+    let root = try await Backend.shared.getRootPath()
+    let path = root.appendingPathComponent("test-\(UUID().uuidString).rkt")
+    let originalContent = "#lang racket/base\n(displayln \"original\")\n"
+    try await Backend.shared.save(originalContent, to: path)
+    defer { Task { try? await Backend.shared.deleteFile(atPath: path) } }
+
+    let store = EditorStore()
+    try await store.open(path: path)
+    let doc = store.activeDocument!
+    doc.code = "modified code"
+
+    let (capture, token) = observeCodeReplacement(for: doc)
+    defer { NotificationCenter.default.removeObserver(token) }
+
+    await store.revert()
+
+    #expect(capture.code == originalContent)
+  }
+
+  // MARK: - close while executing
+
+  @Test
+  func closeWhileExecutingStopsExecution() {
+    let store = EditorStore()
+    store.newDocument()
+    let doc = store.activeDocument!
+    doc.isEvaluating = true
+    let executionId = UInt64.random(in: 1000...UInt64.max)
+    doc.executionId = executionId
+    ExecutionRegistry.shared.register(doc, executionId: executionId)
+
+    store.close(doc)
+
+    #expect(!doc.isEvaluating)
+    #expect(doc.executionId == nil)
+  }
+
+  // MARK: - didSet fallback via reorderDocuments
+
+  @Test
+  func reorderDocumentsExcludingActiveFallsBackToLast() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
+    store.selectDocument(store.documents[0])
+    let ids = store.documents.map(\.id)
+    store.reorderDocuments(to: [ids[1], ids[2]])
+    #expect(store.activeDocument?.title == "c.rkt")
+  }
+}
+
+private final class CodeCapture: @unchecked Sendable {
+  var code: String?
 }
