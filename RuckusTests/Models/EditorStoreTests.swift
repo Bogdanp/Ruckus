@@ -398,6 +398,7 @@ struct EditorStoreTests {
 
   @Test
   func executeRunsScript() async throws {
+    try await Backend.ensureExecutorStepInstalled()
     let root = try await Backend.shared.getRootPath()
     let path = root.appendingPathComponent("test-\(UUID().uuidString).rkt")
     try await Backend.shared.save("#lang racket/base\n(displayln \"hello\")\n", to: path)

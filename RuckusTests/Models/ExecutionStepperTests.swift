@@ -8,6 +8,7 @@ import Testing
 struct ExecutionStepperTests {
 
   private func executeScript(_ code: String) async throws -> (path: String, executionId: UInt64) {
+    try await Backend.ensureExecutorStepInstalled()
     let root = try await Backend.shared.getRootPath()
     let path = root.appendingPathComponent("test-\(UUID().uuidString).rkt")
     try await Backend.shared.save(code, to: path)

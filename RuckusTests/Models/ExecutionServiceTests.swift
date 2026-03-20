@@ -8,6 +8,7 @@ import Testing
 struct ExecutionServiceTests {
 
   private func runScript(_ code: String) async throws -> EditorDocument {
+    try await Backend.ensureExecutorStepInstalled()
     let root = try await Backend.shared.getRootPath()
     let path = root.appendingPathComponent("test-\(UUID().uuidString).rkt")
     try await Backend.shared.save(code, to: path)

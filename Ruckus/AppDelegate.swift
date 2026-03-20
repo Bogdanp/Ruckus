@@ -13,16 +13,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
-    _ = Backend.shared.installCallback(onExecutorStep: { executionId in
-      Task { @MainActor in
-        ExecutionStepper.shared.notify(executionId: executionId)
-      }
-    })
     Task {
       do {
-        try await Backend.shared.markOnExecutorStepInstalled()
+        try await Backend.ensureExecutorStepInstalled()
       } catch {
-        Logger.backend.error("\(#function): failed to mark executor step installed: \(error)")
+        Logger.backend.error("\(#function): failed to install executor step callback: \(error)")
       }
     }
     return true
