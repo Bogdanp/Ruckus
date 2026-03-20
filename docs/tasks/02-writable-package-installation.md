@@ -176,6 +176,78 @@ so no `*-search-dirs` overrides are needed. However:
   via `collection-file-path` — needs testing to confirm user-scope collections
   are discoverable through the embedded resolver
 
+## App Store Compliance
+
+### Relevant Guideline
+
+**[Guideline 2.5.2](https://developer.apple.com/app-store/review/guidelines/#software-requirements)**:
+Apps should be self-contained in their bundles, and may not download, install, or
+execute code which introduces or changes features or functionality of the app.
+**Exception:** Educational apps designed to teach, develop, or allow students to
+test executable code may, in limited circumstances, download code provided that
+such code is not used for other purposes. Such apps must make the source code
+provided by the app completely viewable and editable by the user.
+
+### Analysis
+
+Runtime package installation (`raco pkg install`) downloads and installs
+executable Racket code from the network. This directly falls under the
+prohibition in 2.5.2 against downloading/installing/executing code that
+introduces new functionality.
+
+**The educational exception likely applies** to Ruckus, since it is a coding
+environment designed to let users write, develop, and test Racket code. The
+conditions for the exception are:
+
+1. The app must be designed to teach, develop, or allow users to test executable
+   code — **Ruckus qualifies** as a Racket development environment.
+2. Downloaded code must not be used for other purposes — Racket packages would
+   only be used within the editor/REPL, **satisfies this**.
+3. Source code must be completely viewable and editable by the user — Racket
+   packages are source-distributed, **satisfies this**.
+
+### Precedent
+
+Several coding-environment apps on the App Store support runtime package
+installation:
+
+- **[Pyto](https://apps.apple.com/us/app/pyto-ide/id1436650069)** — Python IDE
+  that supports `pip install` from PyPI at runtime.
+- **[Pythonista](https://apps.apple.com/us/app/pythonista-3/id1085978097)** —
+  Python IDE with community-built pip/StaSh support for installing pure-Python
+  packages.
+
+These apps have been approved and maintained on the App Store for years,
+suggesting Apple accepts package installation in coding-environment apps under
+the educational exception.
+
+### Risks
+
+- **Enforcement is inconsistent.** In March 2025, Apple [rejected several AI
+  coding assistant apps](https://www.webpronews.com/apples-app-store-crackdown-on-ai-coding-tools-signals-a-deeper-battle-over-who-controls-the-developer-experience/)
+  under 2.5.2, signaling stricter enforcement in this space. The rejections
+  targeted apps that generate and execute code via LLMs, but the broader signal
+  is that Apple is paying closer attention to code-execution apps.
+- **Native code is a hard no.** If any Racket package can compile or load native
+  extensions (FFI, shared libraries), that would almost certainly be rejected.
+  Pure Racket (interpreted/bytecode) packages are much safer.
+- **Review is subjective.** Whether Ruckus qualifies as "educational" is
+  ultimately up to the reviewer. Positioning the app clearly as a development/
+  learning tool (not a general-purpose scripting runtime) reduces risk.
+
+### Recommendation
+
+Runtime package installation is **likely permissible** under the educational
+exception, given the Pyto/Pythonista precedent, but carries moderate risk. To
+minimize rejection risk:
+
+1. Ensure all downloaded package source code is viewable/editable in the app.
+2. Restrict to pure Racket packages (no native FFI extensions).
+3. Position the app clearly as a coding/learning environment in App Store
+   metadata.
+4. Consider shipping the feature as opt-in or behind a clear user action (not
+   automatic background downloads) to demonstrate user intent.
+
 ## Related
 
 - `ruckus-core/resolver.rkt` — custom module resolver that converts lib paths
