@@ -11,7 +11,9 @@ user-invocable: true
 ## Workflow
 
 1. **Read current build number.** Parse `CURRENT_PROJECT_VERSION` from
-   `xcconfigs/Ruckus.xcconfig`. Let `OLD` = that value and `NEW` = `OLD + 1`.
+   `xcconfigs/Ruckus.xcconfig`.
+
+   Let `OLD` = that value and `NEW` = `OLD + 1`.
 
 2. **Bump the build number.** Update `CURRENT_PROJECT_VERSION` in both:
    - `xcconfigs/Ruckus.xcconfig`
@@ -20,9 +22,10 @@ user-invocable: true
    Set the value to `NEW` in both files.
 
 3. **Collect changes.** Run `git log` from the commit that last changed
-   `CURRENT_PROJECT_VERSION` (i.e. the previous bump) to `HEAD`. Summarize
-   user-facing changes — skip CI, refactor, and internal-only commits. Keep
-   each entry to one short line.
+   `CURRENT_PROJECT_VERSION` (i.e. the previous bump) to `HEAD`.
+
+   Summarize user-visible changes. Skip CI, refactors, and changes to
+   internals. Keep each entry to one short line.
 
 4. **Write the changelog.** Create `docs/changelogs/<BUILD>.md` where `<BUILD>`
    is `NEW` formatted as `%05d` (e.g. build 4 → `00004`). Use this format:
