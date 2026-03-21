@@ -7,7 +7,7 @@ struct SaveBrowserSheet: View {
   @State private var filename = ""
   @State private var currentDirectory = ""
 
-  private var filenameError: String? {
+  nonisolated static func validateFilename(_ filename: String) -> String? {
     let trimmed = filename.trimmingCharacters(in: .whitespacesAndNewlines)
     if trimmed.isEmpty { return nil } // handled by disabled state
     if trimmed.contains("/") { return "Filename cannot contain \"/\"" }
@@ -17,6 +17,14 @@ struct SaveBrowserSheet: View {
     }
     if hasControlChars { return "Filename contains invalid characters" }
     return nil
+  }
+
+  nonisolated static func normalizeFilename(_ filename: String) -> String {
+    filename.hasSuffix(".rkt") ? filename : filename + ".rkt"
+  }
+
+  private var filenameError: String? {
+    Self.validateFilename(filename)
   }
 
   var body: some View {
@@ -55,7 +63,7 @@ struct SaveBrowserSheet: View {
               .stroke(filenameError != nil ? Color.red : Color.clear, lineWidth: 1)
           )
         Button("Save") {
-          let name = filename.hasSuffix(".rkt") ? filename : filename + ".rkt"
+          let name = Self.normalizeFilename(filename)
           onSave(currentDirectory, name)
           dismiss()
         }
