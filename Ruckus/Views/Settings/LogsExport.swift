@@ -25,7 +25,7 @@ struct LogsExport: Transferable {
 }
 
 extension OSLogEntryLog.Level {
-  fileprivate var description: String {
+  var description: String {
     switch self {
     case .undefined: "undefined"
     case .debug: "debug"
