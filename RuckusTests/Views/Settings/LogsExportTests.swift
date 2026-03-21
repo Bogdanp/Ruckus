@@ -12,7 +12,7 @@ struct LogsExportTests {
     (OSLogEntryLog.Level.info, "info"),
     (OSLogEntryLog.Level.notice, "notice"),
     (OSLogEntryLog.Level.error, "error"),
-    (OSLogEntryLog.Level.fault, "fault"),
+    (OSLogEntryLog.Level.fault, "fault")
   ])
   func levelDescription(level: OSLogEntryLog.Level, expected: String) {
     #expect(level.description == expected)
