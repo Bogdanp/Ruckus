@@ -163,11 +163,23 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
     }
   }
 
-  private var navigationTitle: String {
+  nonisolated static func navigationTitle(
+    currentDirectory: String, rootPath: String, rootTitle: String
+  ) -> String {
     if currentDirectory == rootPath {
       return rootTitle
     }
     return (currentDirectory as NSString).lastPathComponent
+  }
+
+  nonisolated static func sanitizeFolderName(_ name: String) -> String? {
+    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? nil : trimmed
+  }
+
+  private var navigationTitle: String {
+    Self.navigationTitle(
+      currentDirectory: currentDirectory, rootPath: rootPath, rootTitle: rootTitle)
   }
 
   private func loadRoot() async {
@@ -190,8 +202,7 @@ struct FolderBrowser<Header: View, FileRow: View>: View {
   }
 
   private func createFolder() async {
-    let name = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !name.isEmpty else { return }
+    guard let name = Self.sanitizeFolderName(newFolderName) else { return }
     let path = currentDirectory.appendingPathComponent(name)
     do {
       try await Backend.shared.createDirectory(atPath: path)
