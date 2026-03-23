@@ -180,22 +180,24 @@ struct ExecutionServiceTests {
       "pkg-install failed: \(installDoc.output.string.prefix(500))"
     )
 
+    defer {
+      Task {
+        _ = try? await runScript("""
+          #lang racket/base
+          (require pkg/lib)
+          (with-pkg-lock
+            (pkg-remove (list "marionette-lib")))
+
+          """
+        )
+      }
+    }
+
     // Require the installed package to prove it works.
     let requireDoc = try await runScript(
       "#lang racket/base\n(require marionette)\n(displayln \"marionette loaded\")\n"
     )
     #expect(!requireDoc.isEvaluating)
     #expect(requireDoc.output.string.contains("marionette loaded"))
-
-    // Clean up: remove the installed package.
-    _ = try await runScript("""
-      #lang racket/base
-      (require pkg/lib)
-      (with-pkg-lock
-        (pkg-remove (list "marionette-lib")))
-      (displayln "removed")
-
-      """
-    )
   }
 }

@@ -10,14 +10,8 @@ enum RacketEnvironment {
       .appendingPathComponent("racket")
   }()
 
-  static let collectsDir = Bundle.main.resourceURL!
-    .appendingPathComponent("racket/collects").path
-
-  static let configDir: String = {
-    FileManager.default
-      .urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-      .appendingPathComponent("racket/etc").path
-  }()
+  static let collectsDir = bundleRacketURL.appendingPathComponent("collects").path
+  static let configDir = writableRootURL.appendingPathComponent("etc").path
 
   static func setup() throws {
     let fileManager = FileManager.default
@@ -41,8 +35,8 @@ enum RacketEnvironment {
     let existing = try? String(contentsOf: configFile, encoding: .utf8)
     if existing != config {
       try config.write(to: configFile, atomically: true, encoding: .utf8)
+      Logger.racketEnv.info("Racket environment configured at \(writable.path)")
     }
-    Logger.racketEnv.info("Racket environment configured at \(writable.path)")
   }
 
   private static func generateConfig(writable: String, bundle: String) -> String {
