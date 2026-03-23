@@ -2,10 +2,7 @@
 
 (require noise/backend
          noise/serde
-         pkg/lib
-         racket/list
-         racket/string
-         setup/dirs)
+         pkg/lib)
 
 (provide
  (record-out InstalledPackage)
