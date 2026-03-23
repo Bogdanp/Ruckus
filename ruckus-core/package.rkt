@@ -5,17 +5,17 @@
          pkg/lib)
 
 (provide
- (record-out InstalledPackage)
- (record-out CatalogPackage))
-
-(define-record InstalledPackage
-  [name : String]
-  [source : String]
-  [auto? : Bool])
+ (record-out CatalogPackage)
+ (record-out InstalledPackage))
 
 (define-record CatalogPackage
   [name : String]
   [description : String])
+
+(define-record InstalledPackage
+  [name : String]
+  [source : (Optional String)]
+  [auto? : Bool])
 
 (define-rpc (list-installed-packages : (Listof InstalledPackage))
   (with-pkg-lock/read-only
@@ -23,7 +23,7 @@
     (for/list ([(name info) (in-hash table)])
       (InstalledPackage
        name
-       (hash-ref info 'source "")
+       (hash-ref info 'source #f)
        (hash-ref info 'auto #f)))))
 
 (define-rpc (install-package [_ source : String])
