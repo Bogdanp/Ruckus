@@ -110,4 +110,24 @@ struct ExecutionServiceTests {
     #expect(!doc.isEvaluating)
     #expect(doc.output.string.contains("boom"))
   }
+
+  @Test
+  func runExecutionFiltersEmptyOutput() async throws {
+    let doc = try await runScript("#lang racket/base\n(display \"\")(displayln \"hello\")\n")
+
+    #expect(!doc.isEvaluating)
+    #expect(doc.output.string.contains("hello"))
+
+    // Verify that no empty-string runs snuck into the attributed string.
+    var foundEmptyRun = false
+    doc.output.enumerateAttributes(
+      in: NSRange(location: 0, length: doc.output.length)
+    ) { _, range, _ in
+      let fragment = doc.output.attributedSubstring(from: range).string
+      if fragment.isEmpty {
+        foundEmptyRun = true
+      }
+    }
+    #expect(!foundEmptyRun, "Output should not contain empty attributed-string runs")
+  }
 }
