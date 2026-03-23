@@ -128,6 +128,27 @@ struct EditorDocumentTests {
     #expect(doc1.id != doc2.id)
   }
 
+  // MARK: - outputVersion
+
+  @Test
+  func outputVersionIncrementsAfterClearOutput() {
+    let doc = EditorDocument()
+    let versionBefore = doc.outputVersion
+    doc.appendOutput("text", stream: .stdout)
+    doc.clearOutput()
+    #expect(doc.outputVersion > versionBefore)
+  }
+
+  @Test
+  func outputVersionIncrementsAfterFlush() async {
+    let doc = EditorDocument()
+    let versionBefore = doc.outputVersion
+    doc.appendOutput("text", stream: .stdout)
+    // The scheduled flush fires after ~16ms; wait 25ms to be safe.
+    try? await Task.sleep(for: .milliseconds(25))
+    #expect(doc.outputVersion > versionBefore)
+  }
+
   // MARK: - saved state
 
   @Test
