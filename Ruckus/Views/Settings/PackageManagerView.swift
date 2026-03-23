@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PackageManagerView: View {
-  @State private var manager = PackageManager()
+  @State private var manager = PackageManager.shared
   @State private var searchText = ""
 
   var body: some View {
@@ -53,19 +53,27 @@ struct PackageManagerView: View {
       if manager.isLoadingInstalled {
         ProgressView()
           .frame(maxWidth: .infinity)
-      } else if manager.manualPackages.isEmpty {
+      } else if manager.manualPackages.isEmpty && manager.activeOperations.isEmpty {
         Text("No packages installed")
           .foregroundStyle(.secondary)
       } else {
         ForEach(manager.manualPackages, id: \.name) { pkg in
-          packageRow(pkg)
-            .swipeActions(edge: .trailing) {
+          HStack {
+            packageRow(pkg)
+            if manager.isOperationActive(for: pkg.name) {
+              Spacer()
+              ProgressView()
+            }
+          }
+          .swipeActions(edge: .trailing) {
+            if !manager.isOperationActive(for: pkg.name) {
               AsyncButton(role: .destructive, options: AsyncButtonOption.allButCancel) {
                 await manager.remove(name: pkg.name)
               } label: {
                 Label("Remove", systemImage: "trash")
               }
             }
+          }
         }
       }
     } header: {
@@ -107,7 +115,9 @@ struct PackageManagerView: View {
           HStack {
             Text(pkg.name)
             Spacer()
-            if !manager.installedNames.contains(pkg.name) {
+            if manager.isOperationActive(for: pkg.name) {
+              ProgressView()
+            } else if !manager.installedNames.contains(pkg.name) {
               AsyncButton(options: [.showsProgressView, .disabledWhileRunning, .showsSuccessIcon]) {
                 await manager.install(source: pkg.name)
               } label: {
