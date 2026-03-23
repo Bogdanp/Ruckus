@@ -148,14 +148,16 @@ struct ExecutionServiceTests {
   func pkgLibLoadsAndConfigIsWritable() async throws {
     let doc = try await runScript("""
       #lang racket/base
-      (require pkg/lib)
-      (define pkgs-dir (pkg-directory "base"))
-      (displayln (if pkgs-dir "pkg-directory works" "pkg-directory returned #f"))
-      (displayln "pkg infrastructure ok")
+      (require pkg/lib setup/dirs)
+      (define pkgs (find-pkgs-dir))
+      (displayln (if (and pkgs (memq 'write (file-or-directory-permissions pkgs)))
+                     "writable"
+                     "not writable"))
 
       """
     )
     #expect(!doc.isEvaluating)
-    #expect(doc.output.string.contains("pkg infrastructure ok"))
+    #expect(doc.output.string.contains("writable"))
+    #expect(!doc.output.string.contains("not writable"))
   }
 }
