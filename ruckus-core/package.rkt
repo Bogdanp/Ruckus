@@ -2,41 +2,68 @@
 
 (require noise/backend
          noise/serde
-         pkg/lib)
+         pkg/lib
+         racket/match
+         ruckus/openssl)
 
 (provide
  (record-out CatalogPackage)
+ (enum-out PackageSource)
  (record-out InstalledPackage))
 
 (define-record CatalogPackage
-  [name : String]
-  [description : String])
+  [name : String])
+
+(define-enum PackageSource
+  [catalog {name : String}]
+  [catalog-with-source {name : String} {source : String}]
+  [url {url : String}]
+  [git {url : String}]
+  [file {path : String}]
+  [dir {path : String}]
+  [link {path : String}]
+  [static-link {path : String}]
+  [clone {name : String} {source : String}])
 
 (define-record InstalledPackage
   [name : String]
-  [source : (Optional String)]
+  [source : PackageSource]
+  [checksum : (Optional String)]
   [auto? : Bool])
 
+(define (pkg-source->PackageSource source)
+  (match source
+    [`(catalog ,name) (PackageSource.catalog name)]
+    [`(catalog ,name ,source) (PackageSource.catalog-with-source name source)]
+    [`(url ,url) (PackageSource.url url)]
+    [`(git ,url) (PackageSource.git url)]
+    [`(file ,path) (PackageSource.file path)]
+    [`(dir ,path) (PackageSource.dir path)]
+    [`(link ,path) (PackageSource.link path)]
+    [`(static-link ,path) (PackageSource.static-link path)]
+    [`(clone ,name ,source) (PackageSource.clone name source)]))
+
 (define-rpc (list-installed-packages : (Listof InstalledPackage))
-  (with-pkg-lock/read-only
-    (define table (installed-pkg-table #:scope 'installation))
-    (for/list ([(name info) (in-hash table)])
-      (InstalledPackage
-       name
-       (hash-ref info 'source #f)
-       (hash-ref info 'auto #f)))))
+  (parameterize ([current-pkg-scope 'installation])
+    (with-pkg-lock/read-only
+      (define table (installed-pkg-table))
+      (for/list ([(name info) (in-hash table)])
+        (match-define (pkg-info src checksum auto?) info)
+        (InstalledPackage name (pkg-source->PackageSource src) checksum auto?)))))
 
 (define-rpc (install-package [_ source : String])
-  (with-pkg-lock
-    (pkg-install
-     (list (pkg-desc source 'name #f #f #f))
-     #:dep-behavior 'search-auto)))
+  (parameterize ([current-pkg-scope 'installation])
+    (with-pkg-lock
+      (pkg-install
+       (list (pkg-desc source 'name #f #f #f))
+       #:dep-behavior 'search-auto))))
 
 (define-rpc (remove-package [_ name : String])
-  (with-pkg-lock
-    (pkg-remove (list name))))
+  (parameterize ([current-pkg-scope 'installation])
+    (with-pkg-lock
+      (pkg-remove (list name)))))
 
 (define-rpc (search-packages [_ query : String] : (Listof CatalogPackage))
-  (define results (pkg-catalog-suggestions-for-module (string->symbol query)))
-  (for/list ([name (in-list results)])
-    (CatalogPackage name "")))
+  (for/list ([name (in-list (get-all-pkg-names-from-catalogs))]
+             #:when (regexp-match? (format "^(?i:~a)" (regexp-quote query)) name))
+    (CatalogPackage name)))
