@@ -3,7 +3,6 @@ import SwiftUI
 struct PackageManagerView: View {
   @State private var manager = PackageManager()
   @State private var searchText = ""
-  @State private var searchTask: Task<Void, Never>?
 
   var body: some View {
     List {
@@ -13,19 +12,28 @@ struct PackageManagerView: View {
       }
     }
     .searchable(text: $searchText, prompt: "Search packages")
-    .onChange(of: searchText) {
-      searchTask?.cancel()
-      searchTask = Task {
-        try? await Task.sleep(for: .milliseconds(300))
-        guard !Task.isCancelled else { return }
-        await manager.search(query: searchText)
-      }
+    .task(id: searchText) {
+      try? await Task.sleep(for: .milliseconds(300))
+      guard !Task.isCancelled else { return }
+      await manager.search(query: searchText)
     }
     .navigationTitle("Packages")
     .navigationBarTitleDisplayMode(.inline)
     .task {
       await manager.loadInstalled()
     }
+    .alert("Error", isPresented: showAlert) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      Text(manager.alertMessage ?? "")
+    }
+  }
+
+  private var showAlert: Binding<Bool> {
+    Binding(
+      get: { manager.alertMessage != nil },
+      set: { if !$0 { manager.alertMessage = nil } }
+    )
   }
 
   private var installedSection: some View {
@@ -47,7 +55,7 @@ struct PackageManagerView: View {
           }
           .swipeActions(edge: .trailing) {
             AsyncButton(role: .destructive) {
-              try? await manager.remove(name: pkg.name)
+              await manager.remove(name: pkg.name)
             } label: {
               Label("Remove", systemImage: "trash")
             }
@@ -80,9 +88,9 @@ struct PackageManagerView: View {
               }
             }
             Spacer()
-            if !isInstalled(pkg.name) {
+            if !manager.installedNames.contains(pkg.name) {
               AsyncButton(options: [.showsProgressView, .disabledWhileRunning, .showsSuccessIcon]) {
-                try? await manager.install(source: pkg.name)
+                await manager.install(source: pkg.name)
               } label: {
                 Text("Install")
                   .font(.caption)
@@ -100,9 +108,5 @@ struct PackageManagerView: View {
     } header: {
       Text("Search Results")
     }
-  }
-
-  private func isInstalled(_ name: String) -> Bool {
-    manager.installedPackages.contains { $0.name == name }
   }
 }

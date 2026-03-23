@@ -7,29 +7,42 @@ class PackageManager {
   private(set) var searchResults: [CatalogPackage] = []
   private(set) var isLoadingInstalled = false
   private(set) var isSearching = false
-  private(set) var error: String?
+  var alertMessage: String?
+
+  var installedNames: Set<String> {
+    Set(installedPackages.map(\.name))
+  }
 
   func loadInstalled() async {
     isLoadingInstalled = true
-    error = nil
     do {
       installedPackages = try await Backend.shared.listInstalledPackages()
         .sorted { $0.name < $1.name }
     } catch {
-      self.error = error.localizedDescription
+      alertMessage = "Failed to load packages: \(error.localizedDescription)"
       Logger.backend.warning("loadInstalled: \(error)")
     }
     isLoadingInstalled = false
   }
 
-  func install(source: String) async throws {
-    try await Backend.shared.installPackage(source)
-    await loadInstalled()
+  func install(source: String) async {
+    do {
+      try await Backend.shared.installPackage(source)
+      await loadInstalled()
+    } catch {
+      alertMessage = "Failed to install \(source): \(error.localizedDescription)"
+      Logger.backend.warning("installPackage: \(error)")
+    }
   }
 
-  func remove(name: String) async throws {
-    try await Backend.shared.removePackage(name)
-    installedPackages.removeAll { $0.name == name }
+  func remove(name: String) async {
+    do {
+      try await Backend.shared.removePackage(name)
+      installedPackages.removeAll { $0.name == name }
+    } catch {
+      alertMessage = "Failed to remove \(name): \(error.localizedDescription)"
+      Logger.backend.warning("removePackage: \(error)")
+    }
   }
 
   func search(query: String) async {
