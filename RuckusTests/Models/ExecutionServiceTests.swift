@@ -160,4 +160,42 @@ struct ExecutionServiceTests {
     #expect(doc.output.string.contains("writable"))
     #expect(!doc.output.string.contains("not writable"))
   }
+
+  @Test
+  func canInstallAndRequirePackage() async throws {
+    // Install a package using pkg-install from pkg/lib.
+    let installDoc = try await runScript("""
+      #lang racket/base
+      (require pkg/lib)
+      (with-pkg-lock
+        (pkg-install (list (pkg-desc "https://github.com/Bogdanp/marionette.git?path=marionette-lib" 'git #f #f #f))
+                     #:dep-behavior 'search-auto))
+      (displayln "install ok")
+
+      """
+    )
+    #expect(!installDoc.isEvaluating)
+    #expect(
+      installDoc.output.string.contains("install ok"),
+      "pkg-install failed: \(installDoc.output.string.prefix(500))"
+    )
+
+    // Require the installed package to prove it works.
+    let requireDoc = try await runScript(
+      "#lang racket/base\n(require marionette)\n(displayln \"marionette loaded\")\n"
+    )
+    #expect(!requireDoc.isEvaluating)
+    #expect(requireDoc.output.string.contains("marionette loaded"))
+
+    // Clean up: remove the installed package.
+    _ = try await runScript("""
+      #lang racket/base
+      (require pkg/lib)
+      (with-pkg-lock
+        (pkg-remove (list "marionette-lib")))
+      (displayln "removed")
+
+      """
+    )
+  }
 }
