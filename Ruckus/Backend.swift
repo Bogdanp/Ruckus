@@ -165,12 +165,12 @@ public struct Folder: Readable, Sendable, Writable {
 
 public struct InstalledPackage: Readable, Sendable, Writable {
   public let name: String
-  public let source: String
+  public let source: String?
   public let autoHuh: Bool
 
   public init(
     name: String,
-    source: String,
+    source: String?,
     autoHuh: Bool
   ) {
     self.name = name
@@ -181,7 +181,7 @@ public struct InstalledPackage: Readable, Sendable, Writable {
   public static func read(from inp: InputPort, using buf: inout Data) -> InstalledPackage {
     return InstalledPackage(
       name: String.read(from: inp, using: &buf),
-      source: String.read(from: inp, using: &buf),
+      source: String?.read(from: inp, using: &buf),
       autoHuh: Bool.read(from: inp, using: &buf)
     )
   }
