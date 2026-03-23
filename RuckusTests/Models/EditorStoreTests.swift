@@ -563,10 +563,8 @@ struct EditorStoreTests {
   func closeNonExistentDocumentIsNoOp() {
     let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt"])
     let ghost = EditorDocument(title: "ghost.rkt", code: "")
-    let countBefore = store.documents.count
     let titlesBefore = store.documents.map(\.title)
     store.close(ghost)
-    #expect(store.documents.count == countBefore)
     #expect(store.documents.map(\.title) == titlesBefore)
   }
 
@@ -608,16 +606,17 @@ struct EditorStoreTests {
     let store = EditorStore()
     let countBefore = store.documents.count
     await store.importFile(from: tempURL)
+    defer {
+      if let path = store.documents.last?.path {
+        Task { try? await Backend.shared.deleteFile(atPath: path) }
+      }
+    }
 
     #expect(store.documents.count == countBefore + 1)
     let doc = store.documents.last!
     #expect(doc.title == tempURL.lastPathComponent)
     #expect(doc.code == content)
     #expect(doc.path != nil)
-
-    if let path = doc.path {
-      defer { Task { try? await Backend.shared.deleteFile(atPath: path) } }
-    }
   }
 
   @Test
@@ -642,13 +641,14 @@ struct EditorStoreTests {
     #expect(store.activeDocument?.title == "a.rkt")
 
     await store.importFile(from: tempURL)
+    defer {
+      if let path = store.activeDocument?.path {
+        Task { try? await Backend.shared.deleteFile(atPath: path) }
+      }
+    }
 
     #expect(store.activeDocument?.title == tempURL.lastPathComponent)
     #expect(store.activeDocument?.id == store.documents.last?.id)
-
-    if let path = store.activeDocument?.path {
-      defer { Task { try? await Backend.shared.deleteFile(atPath: path) } }
-    }
   }
 }
 

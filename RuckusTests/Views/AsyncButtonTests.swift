@@ -38,28 +38,19 @@ struct AsyncButtonTests {
   }
 
   @Test
-  func allContainsAllFourCases() {
+  func allContainsAllCases() {
     #expect(AsyncButtonOption.all == Set(AsyncButtonOption.allCases))
-    #expect(AsyncButtonOption.all.count == 4)
-    #expect(AsyncButtonOption.all.contains(.cancelsOnDisappear))
-    #expect(AsyncButtonOption.all.contains(.disabledWhileRunning))
-    #expect(AsyncButtonOption.all.contains(.showsProgressView))
-    #expect(AsyncButtonOption.all.contains(.showsSuccessIcon))
   }
 
   @Test
-  func allButCancelContainsAllExceptCancelsOnDisappear() {
-    #expect(AsyncButtonOption.allButCancel.count == 3)
-    #expect(!AsyncButtonOption.allButCancel.contains(.cancelsOnDisappear))
-    #expect(AsyncButtonOption.allButCancel.contains(.disabledWhileRunning))
-    #expect(AsyncButtonOption.allButCancel.contains(.showsProgressView))
-    #expect(AsyncButtonOption.allButCancel.contains(.showsSuccessIcon))
+  func allButCancelExcludesCancelsOnDisappear() {
+    let expected: Set<AsyncButtonOption> = [.disabledWhileRunning, .showsProgressView, .showsSuccessIcon]
+    #expect(AsyncButtonOption.allButCancel == expected)
   }
 
   @Test
   func allButCancelSubtractingShowsSuccessIcon() {
     let result = AsyncButtonOption.allButCancel.subtracting([.showsSuccessIcon])
-    #expect(result.count == 2)
     #expect(result == Set<AsyncButtonOption>([.disabledWhileRunning, .showsProgressView]))
   }
 }
