@@ -15,7 +15,7 @@ struct PackageManagerView: View {
           searchSection
         }
       }
-      .onChange(of: manager.searchResults.map(\.name)) {
+      .onChange(of: manager.searchResults.count) {
         if !manager.searchResults.isEmpty {
           withAnimation {
             proxy.scrollTo("searchResults", anchor: .top)
@@ -87,7 +87,7 @@ struct PackageManagerView: View {
   private func packageRow(_ pkg: InstalledPackage) -> some View {
     VStack(alignment: .leading, spacing: 2) {
       Text(pkg.name)
-      Text(String(describing: pkg.source))
+      Text(pkg.source.description)
         .font(.caption)
         .foregroundStyle(.secondary)
         .lineLimit(1)
