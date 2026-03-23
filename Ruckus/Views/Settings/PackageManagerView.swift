@@ -60,7 +60,7 @@ struct PackageManagerView: View {
         ForEach(manager.manualPackages, id: \.name) { pkg in
           packageRow(pkg)
             .swipeActions(edge: .trailing) {
-              AsyncButton(role: .destructive) {
+              AsyncButton(role: .destructive, options: AsyncButtonOption.allButCancel) {
                 await manager.remove(name: pkg.name)
               } label: {
                 Label("Remove", systemImage: "trash")
