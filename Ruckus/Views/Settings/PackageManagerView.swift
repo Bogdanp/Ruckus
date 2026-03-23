@@ -5,13 +5,22 @@ struct PackageManagerView: View {
   @State private var searchText = ""
 
   var body: some View {
-    List {
-      installedSection
-      if !manager.autoPackages.isEmpty {
-        autoSection
+    ScrollViewReader { proxy in
+      List {
+        installedSection
+        if !manager.autoPackages.isEmpty {
+          autoSection
+        }
+        if !searchText.isEmpty {
+          searchSection
+        }
       }
-      if !searchText.isEmpty {
-        searchSection
+      .onChange(of: manager.searchResults.map(\.name)) {
+        if !manager.searchResults.isEmpty {
+          withAnimation {
+            proxy.scrollTo("searchResults", anchor: .top)
+          }
+        }
       }
     }
     .searchable(text: $searchText, prompt: "Search packages")
@@ -78,7 +87,7 @@ struct PackageManagerView: View {
   private func packageRow(_ pkg: InstalledPackage) -> some View {
     VStack(alignment: .leading, spacing: 2) {
       Text(pkg.name)
-      Text(pkg.source.displayString)
+      Text(String(describing: pkg.source))
         .font(.caption)
         .foregroundStyle(.secondary)
         .lineLimit(1)
@@ -118,6 +127,7 @@ struct PackageManagerView: View {
       }
     } header: {
       Text("Search Results")
+        .id("searchResults")
     }
   }
 }
