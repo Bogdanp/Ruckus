@@ -48,12 +48,6 @@ struct PackageManagerView: View {
         ForEach(manager.installedPackages, id: \.name) { pkg in
           VStack(alignment: .leading, spacing: 2) {
             Text(pkg.name)
-            if let source = pkg.source {
-              Text(source)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            }
           }
           .swipeActions(edge: .trailing) {
             AsyncButton(role: .destructive) {

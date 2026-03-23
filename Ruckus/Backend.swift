@@ -68,28 +68,115 @@ public enum FilesystemEntry: Readable, Sendable, Writable {
   }
 }
 
+public enum PackageSource: Readable, Sendable, Writable {
+  case catalog(String)
+  case catalogWithSource(String, String)
+  case url(String)
+  case git(String)
+  case file(String)
+  case dir(String)
+  case link(String)
+  case staticLink(String)
+  case clone(String, String)
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> PackageSource {
+    let tag = UVarint.read(from: inp, using: &buf)
+    switch tag {
+    case 0x0000:
+      return .catalog(
+        String.read(from: inp, using: &buf)
+      )
+    case 0x0001:
+      return .catalogWithSource(
+        String.read(from: inp, using: &buf),
+        String.read(from: inp, using: &buf)
+      )
+    case 0x0002:
+      return .url(
+        String.read(from: inp, using: &buf)
+      )
+    case 0x0003:
+      return .git(
+        String.read(from: inp, using: &buf)
+      )
+    case 0x0004:
+      return .file(
+        String.read(from: inp, using: &buf)
+      )
+    case 0x0005:
+      return .dir(
+        String.read(from: inp, using: &buf)
+      )
+    case 0x0006:
+      return .link(
+        String.read(from: inp, using: &buf)
+      )
+    case 0x0007:
+      return .staticLink(
+        String.read(from: inp, using: &buf)
+      )
+    case 0x0008:
+      return .clone(
+        String.read(from: inp, using: &buf),
+        String.read(from: inp, using: &buf)
+      )
+    default:
+      preconditionFailure("PackageSource: unexpected tag \(tag)")
+    }
+  }
+
+  public func write(to out: OutputPort) {
+    switch self {
+    case .catalog(let name):
+      UVarint(0x0000).write(to: out)
+      name.write(to: out)
+    case .catalogWithSource(let name, let source):
+      UVarint(0x0001).write(to: out)
+      name.write(to: out)
+      source.write(to: out)
+    case .url(let url):
+      UVarint(0x0002).write(to: out)
+      url.write(to: out)
+    case .git(let url):
+      UVarint(0x0003).write(to: out)
+      url.write(to: out)
+    case .file(let path):
+      UVarint(0x0004).write(to: out)
+      path.write(to: out)
+    case .dir(let path):
+      UVarint(0x0005).write(to: out)
+      path.write(to: out)
+    case .link(let path):
+      UVarint(0x0006).write(to: out)
+      path.write(to: out)
+    case .staticLink(let path):
+      UVarint(0x0007).write(to: out)
+      path.write(to: out)
+    case .clone(let name, let source):
+      UVarint(0x0008).write(to: out)
+      name.write(to: out)
+      source.write(to: out)
+    }
+  }
+}
+
 public struct CatalogPackage: Readable, Sendable, Writable {
   public let name: String
-  public let description: String
 
   public init(
-    name: String,
-    description: String
+    name: String
   ) {
     self.name = name
-    self.description = description
   }
 
   public static func read(from inp: InputPort, using buf: inout Data) -> CatalogPackage {
     return CatalogPackage(
-      name: String.read(from: inp, using: &buf),
-      description: String.read(from: inp, using: &buf)
+      name: String.read(from: inp, using: &buf)
     )
   }
 
   public func write(to out: OutputPort) {
     name.write(to: out)
-    description.write(to: out)
   }
 }
 
@@ -165,23 +252,27 @@ public struct Folder: Readable, Sendable, Writable {
 
 public struct InstalledPackage: Readable, Sendable, Writable {
   public let name: String
-  public let source: String?
+  public let source: PackageSource
+  public let checksum: String?
   public let autoHuh: Bool
 
   public init(
     name: String,
-    source: String?,
+    source: PackageSource,
+    checksum: String?,
     autoHuh: Bool
   ) {
     self.name = name
     self.source = source
+    self.checksum = checksum
     self.autoHuh = autoHuh
   }
 
   public static func read(from inp: InputPort, using buf: inout Data) -> InstalledPackage {
     return InstalledPackage(
       name: String.read(from: inp, using: &buf),
-      source: String?.read(from: inp, using: &buf),
+      source: PackageSource.read(from: inp, using: &buf),
+      checksum: String?.read(from: inp, using: &buf),
       autoHuh: Bool.read(from: inp, using: &buf)
     )
   }
@@ -189,6 +280,7 @@ public struct InstalledPackage: Readable, Sendable, Writable {
   public func write(to out: OutputPort) {
     name.write(to: out)
     source.write(to: out)
+    checksum.write(to: out)
     autoHuh.write(to: out)
   }
 }

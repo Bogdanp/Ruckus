@@ -55,7 +55,7 @@ enum RacketEnvironment {
       (lib-search-dirs . (#f "\(bundle)/lib"))
       (default-scope . "installation")
       (installation-name . "Ruckus")
-      (catalogs . (#f)))
+      (catalogs . (#f "https://pkgs.racket-lang.org")))
     """
   }
 }
