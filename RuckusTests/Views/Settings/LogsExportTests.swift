@@ -17,4 +17,10 @@ struct LogsExportTests {
   func levelDescription(level: OSLogEntryLog.Level, expected: String) {
     #expect(level.description == expected)
   }
+
+  @Test
+  func unknownLevelDefaultsToDefault() {
+    let unknown = OSLogEntryLog.Level(rawValue: 99)!
+    #expect(unknown.description == "default")
+  }
 }

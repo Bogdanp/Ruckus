@@ -490,6 +490,166 @@ struct EditorStoreTests {
     store.reorderDocuments(to: [ids[1], ids[2]])
     #expect(store.activeDocument?.title == "c.rkt")
   }
+
+  // MARK: - save filename validation (Task 11)
+
+  @Test
+  func saveThrowsForFilenameWithSlash() async throws {
+    let store = EditorStore()
+    store.newDocument()
+    let doc = store.activeDocument!
+    doc.title = "bad/name"
+    await #expect(throws: SaveError.invalidFilename) {
+      try await store.save(doc)
+    }
+  }
+
+  @Test
+  func saveThrowsForFilenameWithDoubleDot() async throws {
+    let store = EditorStore()
+    store.newDocument()
+    let doc = store.activeDocument!
+    doc.title = "bad..name"
+    await #expect(throws: SaveError.invalidFilename) {
+      try await store.save(doc)
+    }
+  }
+
+  @Test
+  func saveAppendsRktSuffixWhenMissing() async throws {
+    let store = EditorStore()
+    store.newDocument()
+    let doc = store.activeDocument!
+    doc.title = "test-\(UUID().uuidString)"
+    let originalTitle = doc.title
+
+    var savedPath: String?
+    defer {
+      if let path = savedPath {
+        Task { try? await Backend.shared.deleteFile(atPath: path) }
+      }
+    }
+
+    try await store.save(doc)
+    savedPath = doc.path
+
+    #expect(doc.title == originalTitle + ".rkt")
+  }
+
+  @Test
+  func saveLeavesRktSuffixUnchanged() async throws {
+    let store = EditorStore()
+    store.newDocument()
+    let doc = store.activeDocument!
+    doc.title = "test-\(UUID().uuidString).rkt"
+    let originalTitle = doc.title
+
+    var savedPath: String?
+    defer {
+      if let path = savedPath {
+        Task { try? await Backend.shared.deleteFile(atPath: path) }
+      }
+    }
+
+    try await store.save(doc)
+    savedPath = doc.path
+
+    #expect(doc.title == originalTitle)
+  }
+
+  // MARK: - close edge cases (Task 12)
+
+  @Test
+  func closeNonExistentDocumentIsNoOp() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt"])
+    let ghost = EditorDocument(title: "ghost.rkt", code: "")
+    let countBefore = store.documents.count
+    let titlesBefore = store.documents.map(\.title)
+    store.close(ghost)
+    #expect(store.documents.count == countBefore)
+    #expect(store.documents.map(\.title) == titlesBefore)
+  }
+
+  @Test
+  func closeAllDocumentsOneByOneAlwaysCreatesUntitled() {
+    let store = makeStore(paths: ["/files/a.rkt", "/files/b.rkt", "/files/c.rkt"])
+
+    // Close first
+    store.close(store.documents.first(where: { $0.title == "a.rkt" })!)
+    #expect(!store.documents.isEmpty)
+
+    // Close second
+    store.close(store.documents.first(where: { $0.title == "b.rkt" })!)
+    #expect(!store.documents.isEmpty)
+
+    // Close last named document — Untitled should be created
+    store.close(store.documents.first(where: { $0.title == "c.rkt" })!)
+    #expect(store.documents.count == 1)
+    #expect(store.documents[0].title == "Untitled")
+    #expect(store.activeDocument != nil)
+
+    // Close the Untitled — a new Untitled should be created
+    store.close(store.documents[0])
+    #expect(store.documents.count == 1)
+    #expect(store.documents[0].title == "Untitled")
+    #expect(store.activeDocument != nil)
+  }
+
+  // MARK: - importFile (Task 16)
+
+  @Test
+  func importFileCreatesDocumentWithCorrectProperties() async throws {
+    let tempDir = FileManager.default.temporaryDirectory
+    let tempURL = tempDir.appendingPathComponent("test-import-\(UUID().uuidString).rkt")
+    let content = "#lang racket/base\n(displayln \"imported\")\n"
+    try content.write(to: tempURL, atomically: true, encoding: .utf8)
+    defer { try? FileManager.default.removeItem(at: tempURL) }
+
+    let store = EditorStore()
+    let countBefore = store.documents.count
+    await store.importFile(from: tempURL)
+
+    #expect(store.documents.count == countBefore + 1)
+    let doc = store.documents.last!
+    #expect(doc.title == tempURL.lastPathComponent)
+    #expect(doc.code == content)
+    #expect(doc.path != nil)
+
+    if let path = doc.path {
+      defer { Task { try? await Backend.shared.deleteFile(atPath: path) } }
+    }
+  }
+
+  @Test
+  func importFileNonexistentFileAddsNoDocument() async {
+    let bogusURL = URL(fileURLWithPath: "/tmp/nonexistent-\(UUID().uuidString).rkt")
+    let store = EditorStore()
+    let countBefore = store.documents.count
+    await store.importFile(from: bogusURL)
+    #expect(store.documents.count == countBefore)
+  }
+
+  @Test
+  func importFileSetsActiveDocument() async throws {
+    let tempDir = FileManager.default.temporaryDirectory
+    let tempURL = tempDir.appendingPathComponent("test-active-\(UUID().uuidString).rkt")
+    let content = "#lang racket/base\n"
+    try content.write(to: tempURL, atomically: true, encoding: .utf8)
+    defer { try? FileManager.default.removeItem(at: tempURL) }
+
+    let store = makeStore(paths: ["/files/a.rkt"])
+    store.selectDocument(store.documents[0])
+    #expect(store.activeDocument?.title == "a.rkt")
+
+    await store.importFile(from: tempURL)
+
+    #expect(store.activeDocument?.title == tempURL.lastPathComponent)
+    #expect(store.activeDocument?.id == store.documents.last?.id)
+
+    if let path = store.activeDocument?.path {
+      defer { Task { try? await Backend.shared.deleteFile(atPath: path) } }
+    }
+  }
 }
 
 private final class CodeCapture: @unchecked Sendable {
