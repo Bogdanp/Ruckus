@@ -18,6 +18,12 @@ struct SettingsView: View {
         }
         Section {
           NavigationLink {
+            PackageManagerView()
+          } label: {
+            Label("Packages", systemImage: "shippingbox.fill")
+              .labelStyle(SettingsLabelStyle(backgroundColor: .green))
+          }
+          NavigationLink {
             DocumentationView()
           } label: {
             Label("Documentation", systemImage: "book.fill")

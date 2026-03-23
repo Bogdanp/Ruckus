@@ -5,7 +5,8 @@
          ;; For effect:
          "executor.rkt"
          "filesystem.rkt"
-         "format.rkt")
+         "format.rkt"
+         "package.rkt")
 
 (provide
  main)

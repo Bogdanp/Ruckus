@@ -68,6 +68,31 @@ public enum FilesystemEntry: Readable, Sendable, Writable {
   }
 }
 
+public struct CatalogPackage: Readable, Sendable, Writable {
+  public let name: String
+  public let description: String
+
+  public init(
+    name: String,
+    description: String
+  ) {
+    self.name = name
+    self.description = description
+  }
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> CatalogPackage {
+    return CatalogPackage(
+      name: String.read(from: inp, using: &buf),
+      description: String.read(from: inp, using: &buf)
+    )
+  }
+
+  public func write(to out: OutputPort) {
+    name.write(to: out)
+    description.write(to: out)
+  }
+}
+
 public struct ExecutionOutput: Readable, Sendable, Writable {
   public let stdout: Data
   public let stderr: Data
@@ -135,6 +160,36 @@ public struct Folder: Readable, Sendable, Writable {
 
   public func write(to out: OutputPort) {
     path.write(to: out)
+  }
+}
+
+public struct InstalledPackage: Readable, Sendable, Writable {
+  public let name: String
+  public let source: String
+  public let autoHuh: Bool
+
+  public init(
+    name: String,
+    source: String,
+    autoHuh: Bool
+  ) {
+    self.name = name
+    self.source = source
+    self.autoHuh = autoHuh
+  }
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> InstalledPackage {
+    return InstalledPackage(
+      name: String.read(from: inp, using: &buf),
+      source: String.read(from: inp, using: &buf),
+      autoHuh: Bool.read(from: inp, using: &buf)
+    )
+  }
+
+  public func write(to out: OutputPort) {
+    name.write(to: out)
+    source.write(to: out)
+    autoHuh.write(to: out)
   }
 }
 
@@ -293,10 +348,24 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(installExamples())
   }
 
-  public func listFiles(atPath root: String) -> Future<String, [FilesystemEntry]> {
+  public func installPackage(_ source: String) -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
         UVarint(0x000a).write(to: out)
+        source.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> Void in }
+    )
+  }
+
+  public func installPackage(_ source: String) async throws -> Void {
+    return try await FutureUtil.asyncify(installPackage(source))
+  }
+
+  public func listFiles(atPath root: String) -> Future<String, [FilesystemEntry]> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x000b).write(to: out)
         root.write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> [FilesystemEntry] in
@@ -309,10 +378,25 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(listFiles(atPath: root))
   }
 
+  public func listInstalledPackages() -> Future<String, [InstalledPackage]> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x000c).write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> [InstalledPackage] in
+        return [InstalledPackage].read(from: inp, using: &buf)
+      }
+    )
+  }
+
+  public func listInstalledPackages() async throws -> [InstalledPackage] {
+    return try await FutureUtil.asyncify(listInstalledPackages())
+  }
+
   public func makeTempPath() -> Future<String, String> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x000b).write(to: out)
+        UVarint(0x000d).write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> String in
         return String.read(from: inp, using: &buf)
@@ -327,7 +411,7 @@ public final class Backend: Sendable {
   public func markOnExecutorStepInstalled() -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x000c).write(to: out)
+        UVarint(0x000e).write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> Void in }
     )
@@ -340,7 +424,7 @@ public final class Backend: Sendable {
   public func readFile(atPath path: String) -> Future<String, String> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x000d).write(to: out)
+        UVarint(0x000f).write(to: out)
         path.write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> String in
@@ -353,10 +437,24 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(readFile(atPath: path))
   }
 
+  public func removePackage(_ name: String) -> Future<String, Void> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0010).write(to: out)
+        name.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> Void in }
+    )
+  }
+
+  public func removePackage(_ name: String) async throws -> Void {
+    return try await FutureUtil.asyncify(removePackage(name))
+  }
+
   public func save(_ content: String, to path: String) -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x000e).write(to: out)
+        UVarint(0x0011).write(to: out)
         content.write(to: out)
         path.write(to: out)
       },
@@ -368,10 +466,26 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(save(content, to: path))
   }
 
+  public func searchPackages(_ query: String) -> Future<String, [CatalogPackage]> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0012).write(to: out)
+        query.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> [CatalogPackage] in
+        return [CatalogPackage].read(from: inp, using: &buf)
+      }
+    )
+  }
+
+  public func searchPackages(_ query: String) async throws -> [CatalogPackage] {
+    return try await FutureUtil.asyncify(searchPackages(query))
+  }
+
   public func stepExecution(_ id: UVarint) -> Future<String, ExecutionStep> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x000f).write(to: out)
+        UVarint(0x0013).write(to: out)
         id.write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> ExecutionStep in
@@ -387,7 +501,7 @@ public final class Backend: Sendable {
   public func stopExecution(_ id: UVarint) -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x0010).write(to: out)
+        UVarint(0x0014).write(to: out)
         id.write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> Void in }
