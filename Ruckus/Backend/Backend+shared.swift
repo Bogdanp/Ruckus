@@ -7,8 +7,8 @@ extension Backend {
     andMod: "main",
     andProc: "main",
     andBootArguments: .init(
-      collectsDir: "../racket/collects",
-      configDir: "../racket/etc"
+      collectsDir: RacketEnvironment.collectsDir,
+      configDir: RacketEnvironment.configDir
     )
   )
 }
