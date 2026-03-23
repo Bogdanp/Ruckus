@@ -2,48 +2,47 @@ import Foundation
 import os
 
 enum RacketEnvironment {
-  private static let logger = Logger(subsystem: "com.ruckus.app", category: "racket-env")
+  private static let bundleRacketURL = Bundle.main.resourceURL!.appendingPathComponent("racket")
 
-  static let bundleRacketURL = Bundle.main.resourceURL!.appendingPathComponent("racket")
-
-  static let writableRootURL: URL = {
+  private static let writableRootURL: URL = {
     FileManager.default
       .urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
       .appendingPathComponent("racket")
   }()
 
-  static var collectsDir: String {
-    bundleRacketURL.appendingPathComponent("collects").path
-  }
+  static let collectsDir = Bundle.main.resourceURL!
+    .appendingPathComponent("racket/collects").path
 
-  static var configDir: String {
-    writableRootURL.appendingPathComponent("etc").path
-  }
+  static let configDir: String = {
+    FileManager.default
+      .urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+      .appendingPathComponent("racket/etc").path
+  }()
 
   static func setup() throws {
     let fileManager = FileManager.default
     let writable = writableRootURL
 
-    // Create writable directories.
     for sub in ["etc", "pkgs", "share", "doc", "lib"] {
       let dir = writable.appendingPathComponent(sub)
       try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
     }
 
-    // Seed an empty links.rktd if it doesn't exist yet.
     let linksFile = writable.appendingPathComponent("links.rktd")
     if !fileManager.fileExists(atPath: linksFile.path) {
       try "()\n".write(to: linksFile, atomically: true, encoding: .utf8)
     }
 
-    // Always regenerate config.rktd so paths stay correct across updates.
     let config = generateConfig(
       writable: writable.path,
       bundle: bundleRacketURL.path
     )
     let configFile = writable.appendingPathComponent("etc/config.rktd")
-    try config.write(to: configFile, atomically: true, encoding: .utf8)
-    logger.info("Racket environment configured at \(writable.path)")
+    let existing = try? String(contentsOf: configFile, encoding: .utf8)
+    if existing != config {
+      try config.write(to: configFile, atomically: true, encoding: .utf8)
+    }
+    Logger.racketEnv.info("Racket environment configured at \(writable.path)")
   }
 
   private static func generateConfig(writable: String, bundle: String) -> String {
