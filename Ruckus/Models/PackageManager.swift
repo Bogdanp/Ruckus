@@ -29,10 +29,13 @@ class PackageManager {
   }
 
   func loadInstalled() async {
+    guard !isLoadingInstalled else { return }
     isLoadingInstalled = true
     do {
       installedPackages = try await Backend.shared.listInstalledPackages()
         .sorted { $0.name < $1.name }
+    } catch is CancellationError {
+      // View disappeared during load — not an error.
     } catch {
       alertMessage = "Failed to load packages: \(error.localizedDescription)"
       Logger.backend.warning("loadInstalled: \(error)")
