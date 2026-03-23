@@ -7,6 +7,9 @@ struct PackageManagerView: View {
   var body: some View {
     List {
       installedSection
+      if !manager.autoPackages.isEmpty {
+        autoSection
+      }
       if !searchText.isEmpty {
         searchSection
       }
@@ -41,25 +44,44 @@ struct PackageManagerView: View {
       if manager.isLoadingInstalled {
         ProgressView()
           .frame(maxWidth: .infinity)
-      } else if manager.installedPackages.isEmpty {
+      } else if manager.manualPackages.isEmpty {
         Text("No packages installed")
           .foregroundStyle(.secondary)
       } else {
-        ForEach(manager.installedPackages, id: \.name) { pkg in
-          VStack(alignment: .leading, spacing: 2) {
-            Text(pkg.name)
-          }
-          .swipeActions(edge: .trailing) {
-            AsyncButton(role: .destructive) {
-              await manager.remove(name: pkg.name)
-            } label: {
-              Label("Remove", systemImage: "trash")
+        ForEach(manager.manualPackages, id: \.name) { pkg in
+          packageRow(pkg)
+            .swipeActions(edge: .trailing) {
+              AsyncButton(role: .destructive) {
+                await manager.remove(name: pkg.name)
+              } label: {
+                Label("Remove", systemImage: "trash")
+              }
             }
-          }
         }
       }
     } header: {
       Text("Installed")
+    }
+  }
+
+  private var autoSection: some View {
+    Section {
+      ForEach(manager.autoPackages, id: \.name) { pkg in
+        packageRow(pkg)
+          .foregroundStyle(.secondary)
+      }
+    } header: {
+      Text("Auto-installed Dependencies")
+    }
+  }
+
+  private func packageRow(_ pkg: InstalledPackage) -> some View {
+    VStack(alignment: .leading, spacing: 2) {
+      Text(pkg.name)
+      Text(pkg.source.displayString)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
     }
   }
 
@@ -74,15 +96,7 @@ struct PackageManagerView: View {
       } else {
         ForEach(manager.searchResults, id: \.name) { pkg in
           HStack {
-            VStack(alignment: .leading, spacing: 2) {
-              Text(pkg.name)
-              if !pkg.description.isEmpty {
-                Text(pkg.description)
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-                  .lineLimit(2)
-              }
-            }
+            Text(pkg.name)
             Spacer()
             if !manager.installedNames.contains(pkg.name) {
               AsyncButton(options: [.showsProgressView, .disabledWhileRunning, .showsSuccessIcon]) {
@@ -91,11 +105,12 @@ struct PackageManagerView: View {
                 Text("Install")
                   .font(.caption)
               }
-              .buttonStyle(.bordered)
+              .buttonStyle(.borderedProminent)
+              .buttonBorderShape(.capsule)
             } else {
               Label("Installed", systemImage: "checkmark.circle.fill")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.green)
                 .labelStyle(.iconOnly)
             }
           }

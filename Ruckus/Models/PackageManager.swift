@@ -1,6 +1,31 @@
 import Foundation
 import os
 
+extension PackageSource {
+  var displayString: String {
+    switch self {
+    case .catalog(let name):
+      name
+    case .catalogWithSource(_, let source):
+      source
+    case .url(let url):
+      url
+    case .git(let url):
+      url
+    case .file(let path):
+      path
+    case .dir(let path):
+      path
+    case .link(let path):
+      path
+    case .staticLink(let path):
+      path
+    case .clone(_, let source):
+      source
+    }
+  }
+}
+
 @MainActor @Observable
 class PackageManager {
   private(set) var installedPackages: [InstalledPackage] = []
@@ -8,6 +33,14 @@ class PackageManager {
   private(set) var isLoadingInstalled = false
   private(set) var isSearching = false
   var alertMessage: String?
+
+  var manualPackages: [InstalledPackage] {
+    installedPackages.filter { !$0.autoHuh }
+  }
+
+  var autoPackages: [InstalledPackage] {
+    installedPackages.filter(\.autoHuh)
+  }
 
   var installedNames: Set<String> {
     Set(installedPackages.map(\.name))
