@@ -13,6 +13,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    do {
+      try RacketEnvironment.setup()
+    } catch {
+      Logger.backend.error("\(#function): failed to set up Racket environment: \(error)")
+    }
     Task {
       do {
         try await Backend.ensureExecutorStepInstalled()
