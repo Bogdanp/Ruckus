@@ -5,7 +5,18 @@ import PackageDescription
 import ProjectDescription
 
 let packageSettings = PackageSettings(
-  productTypes: [:]
+  baseSettings: .settings(
+    base: [
+      "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
+      "STRING_CATALOG_GENERATE_SYMBOLS": "YES"
+    ]
+  ),
+  targetSettings: [
+    "Noise": ["ENABLE_MODULE_VERIFIER": "YES"],
+    "NoiseBackend": ["ENABLE_MODULE_VERIFIER": "YES"],
+    "NoiseBoot_iOS": ["ENABLE_MODULE_VERIFIER": "YES"],
+    "NoiseSerde": ["ENABLE_MODULE_VERIFIER": "YES"]
+  ]
 )
 #endif
 

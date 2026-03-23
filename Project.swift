@@ -136,9 +136,7 @@ let project = Project(
       headers: .headers(project: ["vendor/tree-sitter-racket/bindings/swift/**"]),
       settings: .settings(base: [
         "HEADER_SEARCH_PATHS": "$(SRCROOT)/vendor/tree-sitter-racket/src",
-        "MODULEMAP_FILE": "$(SRCROOT)/vendor/tree-sitter-racket.modulemap",
-        "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
-        "STRING_CATALOG_GENERATE_SYMBOLS": "YES"
+        "MODULEMAP_FILE": "$(SRCROOT)/vendor/tree-sitter-racket.modulemap"
       ])
     )
   ],
