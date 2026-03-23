@@ -491,7 +491,7 @@ struct EditorStoreTests {
     #expect(store.activeDocument?.title == "c.rkt")
   }
 
-  // MARK: - save filename validation (Task 11)
+  // MARK: - save filename validation
 
   @Test
   func saveThrowsForFilenameWithSlash() async throws {
@@ -557,7 +557,7 @@ struct EditorStoreTests {
     #expect(doc.title == originalTitle)
   }
 
-  // MARK: - close edge cases (Task 12)
+  // MARK: - close edge cases
 
   @Test
   func closeNonExistentDocumentIsNoOp() {
@@ -593,7 +593,7 @@ struct EditorStoreTests {
     #expect(store.activeDocument != nil)
   }
 
-  // MARK: - importFile (Task 16)
+  // MARK: - importFile
 
   @Test
   func importFileCreatesDocumentWithCorrectProperties() async throws {
