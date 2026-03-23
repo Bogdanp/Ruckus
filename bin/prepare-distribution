@@ -10,7 +10,7 @@ rsync -ravz --exclude '.gitignore' "$RACKET_DIR/collects" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/doc" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/man" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/share" "$RUCKUS_DIR/racket/"
-rm -r "$RUCKUS_DIR/racket/share/pkgs/.trash"
+rm -rf "$RUCKUS_DIR/racket/share/pkgs/.trash"
 rm -r "$RUCKUS_DIR/racket/share/pkgs/"{*-doc,*-test}
 rm -fr "$RUCKUS_DIR/racket/share/pkgs/"*-aarch64-*
 racket "$HERE/clean-links.rkt" "$RUCKUS_DIR/racket/share/links.rktd"
