@@ -9,16 +9,4 @@
     "ruckus-openssl"
     "sandbox-lib"
     "struct-define"
-    "threading-lib"
-
-    ;; Unused, but distributed:
-    "crypto"
-    "csv-reading"
-    "csv-writing"
-    "deta"
-    "http-easy"
-    "math"
-    "memoize"
-    "rackcheck"
-    "rackunit"
-    "threading"))
+    "threading-lib"))
