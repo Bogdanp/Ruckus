@@ -9,11 +9,9 @@ packages, `.trash`, aarch64 libs, and `.c` files. This approach is fragile
 (breaks when new unwanted files appear) and ships more content than needed.
 
 Now that users can install packages at runtime via the package manager,
-the bundled distribution should be the minimal set that `ruckus-core`
-depends on. The proper way to produce a custom Racket distribution is
-via [`distro-build`](https://github.com/racket/distro-build), which
-handles package selection, dependency resolution, collects, docs, and
-linking automatically.
+the bundled distribution should only include packages that are transitive
+dependencies of `main-distribution` and `ruckus-openssl`. Packages not in
+that set can be installed by the user on demand.
 
 ## Affected Code
 
@@ -37,13 +35,13 @@ Fragile — new unwanted content (like `.trash`) causes CI failures.
 ### `bin/clean-links.rkt`
 
 Filters `links.rktd` and `pkgs.rktd` to remove references to deleted
-packages. This would be unnecessary if the distribution were built
-correctly from the start via `distro-build`.
+packages. Would still be needed but with a cleaner whitelist approach.
 
 ## Impact
 
-- **App size**: 383MB of Racket content ships in the bundle. Much of
-  this (test packages, man pages, unused packages) is unnecessary.
+- **App size**: 383MB of Racket content ships in the bundle. Many
+  packages outside `main-distribution` + `ruckus-openssl` deps are
+  unnecessary.
 - **CI fragility**: Manual deletions break when upstream changes (e.g.
   `.trash` directory appearing).
 - **Maintenance**: Every new unwanted file type requires a new `rm` line
@@ -51,75 +49,95 @@ correctly from the start via `distro-build`.
 
 ## Suggested Fix
 
-### Use `distro-build` to produce a proper custom distribution
+### Whitelist packages by dependency analysis
 
-Replace the ad-hoc `prepare-distribution` script with Racket's official
-[`distro-build`](https://github.com/racket/distro-build) tooling.
+Instead of copying everything and blacklisting what we don't want,
+compute the transitive dependency closure of `main-distribution` and
+`ruckus-openssl`, then only copy those packages.
 
-**Step 1 — Create a site configuration.**
+**Step 1 — Compute the needed package set.**
 
-Write a `distro-build` config (e.g. `build/site.rkt`) that specifies
-only the packages `ruckus-core` needs:
+Write a script (e.g. `bin/compute-deps.rkt`) that uses `pkg/lib` to
+resolve the transitive dependencies of `main-distribution` and
+`ruckus-openssl`:
 
 ```racket
-#lang distro-build/config
-(machine
-  #:pkgs '("ruckus-core" "ruckus-openssl")
-  #:dist-name "Ruckus"
-  #:dist-base "ruckus")
+#lang racket/base
+(require pkg/lib)
+;; Get transitive deps of main-distribution + ruckus-openssl
+;; Output the list of package names
 ```
 
-`distro-build` will resolve the transitive dependency closure
-automatically, including collects, docs, and links — no manual filtering
-needed.
+Or use `raco pkg show --all` and filter by dependency chains.
 
-**Step 2 — Build the distribution.**
+**Step 2 — Update `prepare-distribution` to use a whitelist.**
 
 ```bash
-make server PKGS="ruckus-core ruckus-openssl"
-make client SERVER=localhost PKGS="ruckus-core ruckus-openssl"
+# Compute needed packages
+NEEDED_PKGS=$(./bin/pbracket bin/compute-deps.rkt)
+
+# Copy collects (always needed)
+rsync -ravz --exclude '.gitignore' "$RACKET_DIR/collects" "$RUCKUS_DIR/racket/"
+
+# Copy docs (displayed in-app)
+rsync -ravz "$RACKET_DIR/doc" "$RUCKUS_DIR/racket/"
+
+# Copy only needed packages
+mkdir -p "$RUCKUS_DIR/racket/share/pkgs"
+for pkg in $NEEDED_PKGS; do
+  rsync -raz "$RACKET_DIR/share/pkgs/$pkg" "$RUCKUS_DIR/racket/share/pkgs/"
+done
+
+# Copy share metadata (links, etc)
+cp "$RACKET_DIR/share/links.rktd" "$RUCKUS_DIR/racket/share/"
+cp "$RACKET_DIR/share/info-cache.rktd" "$RUCKUS_DIR/racket/share/"
+
+# Clean links to match copied packages
+racket "$HERE/clean-links.rkt" "$RUCKUS_DIR/racket/share/links.rktd"
 ```
 
-Or for a single-machine build:
+**Step 3 — Drop man pages.**
 
-```bash
-make installers CONFIG=build/site.rkt
-```
+Don't copy `man/` — useless on iOS.
 
-This produces a self-consistent distribution in `build/installers/`
-with only the packages specified and their transitive dependencies.
+**Step 4 — Drop `.c` files and other build artifacts.**
 
-**Step 3 — Update CI and Makefile.**
-
-Replace the `prepare-distribution` step in CI with the `distro-build`
-workflow. The resulting distribution directory replaces the current
-`Ruckus/racket/` tree.
-
-**Step 4 — Remove `bin/prepare-distribution` and `bin/clean-links.rkt`.**
-
-These become unnecessary since `distro-build` produces a clean
-distribution without orphaned links or packages.
+Still strip `.c` files from share/pkgs as a post-step, or exclude them
+during the per-package rsync.
 
 ### What to keep
 
-- **Docs** — keep them; they're displayed in-app via DocumentationView.
-- **Collects** — keep; needed for runtime module resolution.
-- **Man pages** — can be excluded (useless on iOS). Check if
-  `distro-build` has an option to skip man pages, or remove them
-  post-build.
+- **Docs** — keep; displayed in-app via DocumentationView
+- **Collects** — keep; needed for runtime module resolution
+- **Packages** — only transitive deps of `main-distribution` +
+  `ruckus-openssl`
+
+### What to drop
+
+- **Man pages** — useless on iOS
+- **Test packages** (`*-test`) — not needed at runtime
+- **Doc packages** (`*-doc`) — docs are in `doc/`, not in these packages
+- **aarch64 native packages** — not needed for PB
+- **`.c` files** — build artifacts
+- **`.trash`** — package manager garbage
+- **Packages outside the dependency closure** — can be installed via
+  the package manager at runtime
 
 ### Expected size reduction
 
-The exact reduction depends on the transitive dependency closure of
-`ruckus-core`, but removing test packages, unused packages, man pages,
-`.c` files, and `.trash` directories should significantly reduce the
-383MB total. The key win is that `distro-build` only includes what's
-needed rather than including everything and manually deleting.
+| Component | Current | After |
+|-----------|---------|-------|
+| collects  | 35MB    | ~35MB (keep all) |
+| doc       | 173MB   | ~173MB (keep — used in-app) |
+| man       | 20KB    | 0KB (drop) |
+| share/pkgs | 176MB  | ~50-80MB (only transitive deps, no -test/-doc) |
+| **Total** | **383MB** | **~260-290MB** |
+
+Further reduction could come from stripping docs for packages not used
+by the app (if DocumentationView only shows specific docs).
 
 ## Related
 
 - `Ruckus/Backend/RacketEnvironment.swift` — layered config for writable
   packages (users can install missing packages at runtime)
 - `Ruckus/Views/Settings/PackageManagerView.swift` — package manager UI
-- [distro-build documentation](https://docs.racket-lang.org/distro-build/index.html)
-- [Distributing Racket Variants](https://docs.racket-lang.org/racket-build-guide/distribute.html)
