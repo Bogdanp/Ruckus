@@ -7,7 +7,6 @@
          racket/hash
          racket/pretty
          struct-define
-         syntax/modread
          "resolver.rkt")
 
 (provide
@@ -60,28 +59,20 @@
 (define (evaluate in)
   (define-values (document-dir document-name _is-dir?)
     (split-path (format "~a" (object-name in))))
-  (define document-id
-    (string->symbol (path->string document-name)))
-  (define document-spec `',document-id)
-  (parameterize ([current-module-declare-name (make-resolved-module-path document-id)]
-                 [current-module-name-resolver (make-collects-resolver)]
+  (define document-path
+    (build-path document-dir document-name))
+  (define document-mod `(file ,(path->string document-path)))
+  (parameterize ([current-module-name-resolver (make-collects-resolver)]
                  [current-namespace (make-base-empty-namespace)]
                  [current-directory document-dir]
                  [current-load/use-compiled
                   (make-compilation-manager-load/use-compiled-handler)])
     (namespace-require 'ruckus/openssl)
-    (eval
-     (check-module-form
-      (with-module-reading-parameterization
-        (lambda ()
-          (read-syntax #f in)))
-      #;expected-module-sym 'ignored
-      #;source-v #f))
     (let/ec exit
       (parameterize ([current-print pretty-print*]
                      [exit-handler exit])
-        (namespace-require document-spec)))
-    (namespace-mapped-symbols (module->namespace document-spec))))
+        (namespace-require document-mod)))
+    (namespace-mapped-symbols (module->namespace document-mod))))
 
 (define (pretty-print* v)
   (unless (void? v)
