@@ -21,3 +21,7 @@ done
 
 racket "$HERE/clean-links.rkt" "$RUCKUS_DIR/racket/share/links.rktd"
 find "$RUCKUS_DIR/racket/share" -name '*.c' -exec rm \{\} \;
+
+# Strip doc metadata not needed for HTML viewing.
+rm -f "$RUCKUS_DIR/racket/doc/docindex.sqlite"
+find "$RUCKUS_DIR/racket/doc" \( -name '*.sxref' -o -name '*.rktd' \) -exec rm \{\} \;
