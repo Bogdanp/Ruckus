@@ -66,7 +66,7 @@ struct PackageManagerView: View {
             }
           }
           .swipeActions(edge: .trailing) {
-            if !manager.isOperationActive(for: pkg.name) {
+            if manager.activeOperations.isEmpty {
               AsyncButton(role: .destructive, options: AsyncButtonOption.allButCancel) {
                 await manager.remove(name: pkg.name)
               } label: {
@@ -133,6 +133,7 @@ struct PackageManagerView: View {
               }
               .buttonStyle(.borderedProminent)
               .buttonBorderShape(.capsule)
+              .disabled(!manager.activeOperations.isEmpty)
             } else {
               Label("Installed", systemImage: "checkmark.circle.fill")
                 .font(.caption)
