@@ -18,17 +18,11 @@
    #:args pkgs
    pkgs))
 
-(define (catalog-deps name)
-  (define details (get-pkg-details-from-catalogs name))
+(define (dep-name dep)
   (cond
-    [details
-     (define deps (hash-ref details 'dependencies '()))
-     (for/list ([dep (in-list deps)])
-       (cond
-         [(string? dep) dep]
-         [(pair? dep) (car dep)]
-         [else (format "~a" dep)]))]
-    [else '()]))
+    [(string? dep) dep]
+    [(pair? dep) (car dep)]
+    [else (format "~a" dep)]))
 
 (define (local-deps name)
   (define dir (pkg-directory name))
@@ -36,40 +30,34 @@
     [dir
      (define get-info (get-info/full dir))
      (cond
-       [get-info
-        (define deps (get-info 'deps (lambda () '())))
-        (for/list ([dep (in-list deps)])
-          (cond
-            [(string? dep) dep]
-            [(pair? dep) (car dep)]
-            [else (format "~a" dep)]))]
+       [get-info (map dep-name (get-info 'deps (lambda () '())))]
        [else '()])]
     [else #f]))
+
+(define (catalog-deps name)
+  (define details (get-pkg-details-from-catalogs name))
+  (cond
+    [details (map dep-name (hash-ref details 'dependencies '()))]
+    [else '()]))
 
 (define (pkg-deps name)
   (or (local-deps name)
       (catalog-deps name)))
 
-(define (transitive-closure roots)
-  (define installed (list->set (hash-keys (installed-pkg-table))))
-  (let loop ([queue roots]
-             [seen (list->set roots)])
-    (cond
-      [(null? queue) seen]
-      [else
-       (define name (car queue))
-       (define deps (pkg-deps name))
-       (define new-deps
-         (for/list ([dep (in-list deps)]
-                    #:when (set-member? installed dep)
-                    #:unless (set-member? seen dep))
-           dep))
-       (loop (append (cdr queue) new-deps)
-             (set-union seen (list->set new-deps)))])))
-
 (parameterize ([current-pkg-scope 'installation])
-  (define needed (transitive-closure root-pkgs))
-  (define all-installed (list->set (hash-keys (installed-pkg-table))))
-  (define unneeded (set-subtract all-installed needed))
-  (for ([name (in-set unneeded)])
+  (define installed (list->set (hash-keys (installed-pkg-table))))
+  (define needed
+    (let loop ([queue root-pkgs]
+               [seen (list->set root-pkgs)])
+      (cond
+        [(null? queue) seen]
+        [else
+         (define new-deps
+           (for/list ([dep (in-list (pkg-deps (car queue)))]
+                      #:when (set-member? installed dep)
+                      #:unless (set-member? seen dep))
+             dep))
+         (loop (append (cdr queue) new-deps)
+               (set-union seen (list->set new-deps)))])))
+  (for ([name (in-set (set-subtract installed needed))])
     (displayln name)))
