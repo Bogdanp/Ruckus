@@ -1,7 +1,10 @@
 #lang racket/base
 
 ;; Compute the set of packages needed by the given root packages.
-;; Prints one package name per line to stdout.
+;; Outputs the names of UNNEEDED installed packages (one per line).
+;;
+;; Handles root packages that aren't locally installed by fetching
+;; their dependencies from the package catalog.
 ;;
 ;; Usage: racket bin/compute-needed-pkgs.rkt root-pkg ...
 
@@ -15,7 +18,19 @@
    #:args pkgs
    pkgs))
 
-(define (pkg-deps name)
+(define (catalog-deps name)
+  (define details (get-pkg-details-from-catalogs name))
+  (cond
+    [details
+     (define deps (hash-ref details 'dependencies '()))
+     (for/list ([dep (in-list deps)])
+       (cond
+         [(string? dep) dep]
+         [(pair? dep) (car dep)]
+         [else (format "~a" dep)]))]
+    [else '()]))
+
+(define (local-deps name)
   (define dir (pkg-directory name))
   (cond
     [dir
@@ -27,9 +42,13 @@
           (cond
             [(string? dep) dep]
             [(pair? dep) (car dep)]
-            [else (symbol->string dep)]))]
+            [else (format "~a" dep)]))]
        [else '()])]
-    [else '()]))
+    [else #f]))
+
+(define (pkg-deps name)
+  (or (local-deps name)
+      (catalog-deps name)))
 
 (define (transitive-closure roots)
   (define installed (list->set (hash-keys (installed-pkg-table))))
