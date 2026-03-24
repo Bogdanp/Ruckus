@@ -87,6 +87,16 @@ struct PackageManagerView: View {
       ForEach(manager.autoPackages, id: \.name) { pkg in
         packageRow(pkg)
           .foregroundStyle(.secondary)
+          .swipeActions(edge: .trailing) {
+            if manager.activeOperations.isEmpty {
+              AsyncButton(role: .destructive, options: AsyncButtonOption.allButCancel) {
+                await manager.remove(name: pkg.name)
+              } label: {
+                Label("Remove", systemImage: "trash")
+                  .labelStyle(.iconOnly)
+              }
+            }
+          }
       }
     } header: {
       Text("Auto-installed Dependencies")
