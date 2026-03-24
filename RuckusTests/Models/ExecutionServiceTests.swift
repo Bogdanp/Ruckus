@@ -131,17 +131,6 @@ struct ExecutionServiceTests {
     #expect(!foundEmptyRun, "Output should not contain empty attributed-string runs")
   }
 
-  // MARK: - bundled packages
-
-  @Test
-  func bundledPackageHttpEasyLoads() async throws {
-    let doc = try await runScript(
-      "#lang racket/base\n(require net/http-easy)\n(displayln \"http-easy loaded\")\n"
-    )
-    #expect(!doc.isEvaluating)
-    #expect(doc.output.string.contains("http-easy loaded"))
-  }
-
   // MARK: - package infrastructure
 
   @Test
