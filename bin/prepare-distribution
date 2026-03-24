@@ -8,10 +8,18 @@ RACKET_DIR="${PBRACKET_ROOT}/racket"
 
 rsync -ravz --exclude '.gitignore' "$RACKET_DIR/collects" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/doc" "$RUCKUS_DIR/racket/"
-rsync -ravz "$RACKET_DIR/man" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/share" "$RUCKUS_DIR/racket/"
 rm -rf "$RUCKUS_DIR/racket/share/pkgs/.trash"
-rm -r "$RUCKUS_DIR/racket/share/pkgs/"{*-doc,*-test}
-rm -fr "$RUCKUS_DIR/racket/share/pkgs/"*-aarch64-*
+rm -rf "$RUCKUS_DIR/racket/share/pkgs/"*-doc
+rm -rf "$RUCKUS_DIR/racket/share/pkgs/"*-test
+rm -rf "$RUCKUS_DIR/racket/share/pkgs/"*-aarch64-*
+
+# Remove packages not in the transitive dependency closure of ruckus-core
+# and ruckus-openssl.
+UNNEEDED=$(./bin/pbracket bin/compute-needed-pkgs.rkt ruckus-core ruckus-openssl)
+for pkg in $UNNEEDED; do
+  rm -rf "$RUCKUS_DIR/racket/share/pkgs/$pkg"
+done
+
 racket "$HERE/clean-links.rkt" "$RUCKUS_DIR/racket/share/links.rktd"
 find "$RUCKUS_DIR/racket/share" -name '*.c' -exec rm \{\} \;
