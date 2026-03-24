@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require actor
+         compiler/cm
          noise/backend
          noise/serde
          racket/hash
@@ -65,7 +66,9 @@
   (parameterize ([current-module-declare-name (make-resolved-module-path document-id)]
                  [current-module-name-resolver (make-collects-resolver)]
                  [current-namespace (make-base-empty-namespace)]
-                 [current-directory document-dir])
+                 [current-directory document-dir]
+                 [current-load/use-compiled
+                  (make-compilation-manager-load/use-compiled-handler)])
     (namespace-require 'ruckus/openssl)
     (eval
      (check-module-form
