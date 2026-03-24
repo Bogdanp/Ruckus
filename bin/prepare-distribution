@@ -10,8 +10,7 @@ rsync -ravz --exclude '.gitignore' "$RACKET_DIR/collects" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/doc" "$RUCKUS_DIR/racket/"
 rsync -ravz "$RACKET_DIR/share" "$RUCKUS_DIR/racket/"
 rm -rf "$RUCKUS_DIR/racket/share/pkgs/.trash"
-rm -rf "$RUCKUS_DIR/racket/share/pkgs/"*-doc
-rm -rf "$RUCKUS_DIR/racket/share/pkgs/"*-test
+rm -rf "$RUCKUS_DIR/racket/share/pkgs/"{*-doc,*-test}
 rm -rf "$RUCKUS_DIR/racket/share/pkgs/"*-aarch64-*
 
 # Remove packages outside the transitive dependency closure.
