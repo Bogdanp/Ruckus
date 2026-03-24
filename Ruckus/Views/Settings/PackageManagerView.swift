@@ -106,11 +106,17 @@ struct PackageManagerView: View {
   private var searchSection: some View {
     Section {
       if manager.isSearching {
-        ProgressView()
-          .frame(maxWidth: .infinity)
+        ContentUnavailableView {
+          ProgressView()
+        } description: {
+          Text("Searching packages...")
+        }
       } else if manager.searchResults.isEmpty {
-        Text("No results")
-          .foregroundStyle(.secondary)
+        ContentUnavailableView(
+          "No Results",
+          systemImage: "magnifyingglass",
+          description: Text("No packages matching \"\(searchText)\"")
+        )
       } else {
         ForEach(manager.searchResults, id: \.name) { pkg in
           HStack {
