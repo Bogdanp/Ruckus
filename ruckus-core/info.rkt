@@ -9,4 +9,16 @@
     "ruckus-openssl"
     "sandbox-lib"
     "struct-define"
-    "threading-lib"))
+    "threading-lib"
+
+    ;; Not used by ruckus-core, but included in the distribution:
+    "crypto"
+    "csv-reading"
+    "csv-writing"
+    "deta"
+    "http-easy"
+    "math"
+    "memoize"
+    "rackcheck"
+    "rackunit"
+    "threading"))
