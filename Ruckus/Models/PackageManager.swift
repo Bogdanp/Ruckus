@@ -73,12 +73,12 @@ class PackageManager {
       return
     }
     isSearching = true
+    defer { isSearching = false }
     do {
       searchResults = try await Backend.shared.searchPackages(query)
     } catch {
       Logger.backend.warning("searchPackages: \(error)")
       searchResults = []
     }
-    isSearching = false
   }
 }

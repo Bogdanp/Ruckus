@@ -71,6 +71,7 @@ struct PackageManagerView: View {
                 await manager.remove(name: pkg.name)
               } label: {
                 Label("Remove", systemImage: "trash")
+                  .labelStyle(.iconOnly)
               }
             }
           }
