@@ -14,7 +14,7 @@ rm -rf "$RUCKUS_DIR/racket/share/pkgs/"{*-doc,*-test}
 rm -rf "$RUCKUS_DIR/racket/share/pkgs/"*-aarch64-*
 
 # Remove packages outside the transitive dependency closure.
-UNNEEDED=$(./bin/pbracket bin/compute-needed-pkgs.rkt main-distribution ruckus-openssl)
+UNNEEDED=$(./bin/pbracket bin/compute-needed-pkgs.rkt main-distribution ruckus-core ruckus-openssl)
 for pkg in $UNNEEDED; do
   rm -rf "$RUCKUS_DIR/racket/share/pkgs/$pkg"
 done
