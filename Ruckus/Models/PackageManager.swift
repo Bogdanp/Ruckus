@@ -67,6 +67,18 @@ class PackageManager {
     }
   }
 
+  func removeOrphans() async {
+    activeOperations.insert("__orphans__")
+    defer { activeOperations.remove("__orphans__") }
+    do {
+      try await Backend.shared.removeOrphanedPackages()
+      await loadInstalled()
+    } catch {
+      alertMessage = "Failed to clean orphaned packages: \(error.localizedDescription)"
+      Logger.backend.warning("removeOrphanedPackages: \(error)")
+    }
+  }
+
   func search(query: String) async {
     guard !query.isEmpty else {
       searchResults = []
