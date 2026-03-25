@@ -66,7 +66,7 @@
 (define-rpc (remove-orphaned-packages)
   (parameterize ([current-pkg-scope 'installation])
     (with-pkg-lock
-      (pkg-remove (list) #:auto #t))))
+      (pkg-remove null #:auto #t))))
 
 (define-rpc (search-packages [_ query : String] : (Listof CatalogPackage))
   (for/list ([name (in-list (get-all-pkg-names-from-catalogs))]
