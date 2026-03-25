@@ -12,6 +12,7 @@ user-invocable: false
 - Avoid rightward shift -- when possible, prefer local `define`s
   instead of `let` or similar. Sometimes a `let` is intentional in
   order to shadow definitions.
+- Prefer `null` over `'()` or `(list)`.
 
 # Validation
 
