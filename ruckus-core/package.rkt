@@ -63,6 +63,11 @@
     (with-pkg-lock
       (pkg-remove (list name)))))
 
+(define-rpc (remove-orphaned-packages)
+  (parameterize ([current-pkg-scope 'installation])
+    (with-pkg-lock
+      (pkg-remove (list) #:auto #t))))
+
 (define-rpc (search-packages [_ query : String] : (Listof CatalogPackage))
   (for/list ([name (in-list (get-all-pkg-names-from-catalogs))]
              #:when (regexp-match? (format "^(?i:~a)" (regexp-quote query)) name))

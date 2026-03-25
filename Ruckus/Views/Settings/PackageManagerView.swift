@@ -99,7 +99,17 @@ struct PackageManagerView: View {
           }
       }
     } header: {
-      Text("Auto-installed Dependencies")
+      HStack {
+        Text("Auto-installed Dependencies")
+        Spacer()
+        AsyncButton(options: AsyncButtonOption.allButCancel) {
+          await manager.removeOrphans()
+        } label: {
+          Text("Clean")
+            .font(.caption)
+        }
+        .disabled(!manager.activeOperations.isEmpty)
+      }
     }
   }
 
