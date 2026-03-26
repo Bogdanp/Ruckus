@@ -34,21 +34,17 @@ struct TabBarCollectionView: UIViewRepresentable {
 
   func updateUIView(_ collectionView: UICollectionView, context: Context) {
     context.coordinator.parent = self
-    if !collectionView.hasActiveDrag {
-      context.coordinator.applySnapshot()
-    }
+    guard !collectionView.hasActiveDrag else { return }
 
-    if !collectionView.hasActiveDrag,
-       let activeID = activeDocumentID,
+    var scrollTarget: IndexPath?
+    if let activeID = activeDocumentID,
        activeID != context.coordinator.previousActiveID,
        let index = documents.firstIndex(where: { $0.id == activeID }) {
       context.coordinator.previousActiveID = activeID
-      collectionView.scrollToItem(
-        at: IndexPath(item: index, section: 0),
-        at: .centeredHorizontally,
-        animated: true
-      )
+      scrollTarget = IndexPath(item: index, section: 0)
     }
+
+    context.coordinator.applySnapshot(scrollingTo: scrollTarget)
   }
 
   // MARK: - Coordinator
@@ -101,14 +97,23 @@ struct TabBarCollectionView: UIViewRepresentable {
       applySnapshot()
     }
 
-    func applySnapshot() {
+    func applySnapshot(scrollingTo indexPath: IndexPath? = nil) {
       var snapshot = NSDiffableDataSourceSnapshot<Int, UUID>()
       snapshot.appendSections([0])
       let ids = parent.documents.map(\.id)
       snapshot.appendItems(ids)
       snapshot.reconfigureItems(ids)
       dataSource.apply(snapshot, animatingDifferences: false) { [weak self] in
-        self?.collectionView?.collectionViewLayout.invalidateLayout()
+        guard let self, let collectionView = self.collectionView else { return }
+        collectionView.collectionViewLayout.invalidateLayout()
+        if let indexPath {
+          collectionView.layoutIfNeeded()
+          collectionView.scrollToItem(
+            at: indexPath,
+            at: .centeredHorizontally,
+            animated: true
+          )
+        }
       }
     }
 
