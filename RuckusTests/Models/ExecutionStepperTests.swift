@@ -23,7 +23,7 @@ struct ExecutionStepperTests {
     defer { Task { try? await Backend.shared.deleteFile(atPath: path) } }
 
     var steps: [ExecutionStep] = []
-    for try await step in ExecutionStepper.shared.steps(for: executionId) {
+    for try await step in BackendSteppers.execution.steps(for: executionId) {
       steps.append(step)
     }
 
@@ -41,7 +41,7 @@ struct ExecutionStepperTests {
 
   @Test
   func notifyForUnknownIdIsNoOp() {
-    ExecutionStepper.shared.notify(executionId: UInt64.random(in: 1000...UInt64.max))
+    BackendSteppers.execution.notify(id: UInt64.random(in: 1000...UInt64.max))
   }
 
   @Test
@@ -52,7 +52,7 @@ struct ExecutionStepperTests {
     defer { Task { try? await Backend.shared.stopExecution(executionId) } }
 
     let task = Task {
-      for try await _ in ExecutionStepper.shared.steps(for: executionId) {}
+      for try await _ in BackendSteppers.execution.steps(for: executionId) {}
     }
 
     try await Task.sleep(for: .milliseconds(100))
@@ -72,8 +72,8 @@ struct ExecutionStepperTests {
       "#lang racket/base\n(displayln \"bbb\")\n")
     defer { Task { try? await Backend.shared.deleteFile(atPath: pathB) } }
 
-    let stepsA = ExecutionStepper.shared.steps(for: idA)
-    let stepsB = ExecutionStepper.shared.steps(for: idB)
+    let stepsA = BackendSteppers.execution.steps(for: idA)
+    let stepsB = BackendSteppers.execution.steps(for: idB)
 
     var stdoutA = Data()
     var stdoutB = Data()
