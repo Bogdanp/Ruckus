@@ -39,12 +39,23 @@ struct PackageManagerView: View {
     } message: {
       Text(manager.alertMessage ?? "")
     }
+    .sheet(item: installingBinding) { source in
+      InstallProgressView(source: source.id, manager: manager)
+        .interactiveDismissDisabled()
+    }
   }
 
   private var showAlert: Binding<Bool> {
     Binding(
       get: { manager.alertMessage != nil },
       set: { if !$0 { manager.alertMessage = nil } }
+    )
+  }
+
+  private var installingBinding: Binding<InstallSource?> {
+    Binding(
+      get: { manager.installingSource.map(InstallSource.init) },
+      set: { _ in }
     )
   }
 
@@ -166,6 +177,50 @@ struct PackageManagerView: View {
     } header: {
       Text("Search Results")
         .id("searchResults")
+    }
+  }
+}
+
+private struct InstallSource: Identifiable {
+  let id: String
+  init(_ source: String) { self.id = source }
+}
+
+private struct InstallProgressView: View {
+  let source: String
+  @Bindable var manager: PackageManager
+
+  var body: some View {
+    NavigationStack {
+      ScrollViewReader { proxy in
+        ScrollView {
+          VStack(alignment: .leading, spacing: 0) {
+            Text(manager.installLog.isEmpty ? "Starting install…" : manager.installLog)
+              .font(.system(.caption, design: .monospaced))
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding()
+              .id("logTail")
+              .textSelection(.enabled)
+          }
+        }
+        .onChange(of: manager.installLog) {
+          withAnimation {
+            proxy.scrollTo("logTail", anchor: .bottom)
+          }
+        }
+      }
+      .navigationTitle("Installing \(source)")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          AsyncButton(options: AsyncButtonOption.allButCancel) {
+            await manager.cancelInstall()
+          } label: {
+            Text("Cancel")
+          }
+          .disabled(manager.installingSource == nil)
+        }
+      }
     }
   }
 }

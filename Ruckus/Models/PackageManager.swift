@@ -10,6 +10,9 @@ class PackageManager {
   private(set) var isLoadingInstalled = false
   private(set) var isSearching = false
   private(set) var activeOperations: Set<String> = []
+  private(set) var installLog: String = ""
+  private(set) var installingSource: String?
+  private var installId: UInt64?
   var alertMessage: String?
 
   var manualPackages: [InstalledPackage] {
@@ -45,13 +48,41 @@ class PackageManager {
 
   func install(source: String) async {
     activeOperations.insert(source)
-    defer { activeOperations.remove(source) }
+    installingSource = source
+    installLog = ""
+    defer {
+      activeOperations.remove(source)
+      installingSource = nil
+      installId = nil
+    }
     do {
-      try await Backend.shared.installPackage(source)
+      let id = try await Backend.shared.startInstallPackage(source)
+      installId = id
+      var failureMessage: String?
+      for try await step in InstallStepper.shared.steps(for: id) {
+        appendOutput(step.output)
+        if case .failed(_, let message) = step {
+          failureMessage = message
+        }
+      }
+      if let failureMessage {
+        throw InstallError.failed(failureMessage)
+      }
       await loadInstalled()
+    } catch is CancellationError {
+      // User cancelled — not an error.
     } catch {
       alertMessage = "Failed to install \(source): \(error.localizedDescription)"
       Logger.backend.warning("installPackage: \(error)")
+    }
+  }
+
+  func cancelInstall() async {
+    guard let id = installId else { return }
+    do {
+      try await Backend.shared.stopInstall(id)
+    } catch {
+      Logger.backend.warning("stopInstall: \(error)")
     }
   }
 
@@ -91,6 +122,25 @@ class PackageManager {
     } catch {
       Logger.backend.warning("searchPackages: \(error)")
       searchResults = []
+    }
+  }
+
+  private func appendOutput(_ output: InstallOutput) {
+    if !output.stdout.isEmpty, let chunk = String(data: output.stdout, encoding: .utf8) {
+      installLog += chunk
+    }
+    if !output.stderr.isEmpty, let chunk = String(data: output.stderr, encoding: .utf8) {
+      installLog += chunk
+    }
+  }
+}
+
+enum InstallError: LocalizedError {
+  case failed(String)
+
+  var errorDescription: String? {
+    switch self {
+    case .failed(let message): return message
     }
   }
 }

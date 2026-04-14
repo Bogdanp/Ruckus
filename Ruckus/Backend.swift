@@ -68,6 +68,48 @@ public enum FilesystemEntry: Readable, Sendable, Writable {
   }
 }
 
+public enum InstallStep: Readable, Sendable, Writable {
+  case done(InstallOutput)
+  case failed(InstallOutput, String)
+  case more(InstallOutput)
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> InstallStep {
+    let tag = UVarint.read(from: inp, using: &buf)
+    switch tag {
+    case 0x0000:
+      return .done(
+        InstallOutput.read(from: inp, using: &buf)
+      )
+    case 0x0001:
+      return .failed(
+        InstallOutput.read(from: inp, using: &buf),
+        String.read(from: inp, using: &buf)
+      )
+    case 0x0002:
+      return .more(
+        InstallOutput.read(from: inp, using: &buf)
+      )
+    default:
+      preconditionFailure("InstallStep: unexpected tag \(tag)")
+    }
+  }
+
+  public func write(to out: OutputPort) {
+    switch self {
+    case .done(let output):
+      UVarint(0x0000).write(to: out)
+      output.write(to: out)
+    case .failed(let output, let message):
+      UVarint(0x0001).write(to: out)
+      output.write(to: out)
+      message.write(to: out)
+    case .more(let output):
+      UVarint(0x0002).write(to: out)
+      output.write(to: out)
+    }
+  }
+}
+
 public enum PackageSource: Readable, Sendable, Writable {
   case catalog(String)
   case catalogWithSource(String, String)
@@ -247,6 +289,31 @@ public struct Folder: Readable, Sendable, Writable {
 
   public func write(to out: OutputPort) {
     path.write(to: out)
+  }
+}
+
+public struct InstallOutput: Readable, Sendable, Writable {
+  public let stdout: Data
+  public let stderr: Data
+
+  public init(
+    stdout: Data,
+    stderr: Data
+  ) {
+    self.stdout = stdout
+    self.stderr = stderr
+  }
+
+  public static func read(from inp: InputPort, using buf: inout Data) -> InstallOutput {
+    return InstallOutput(
+      stdout: Data.read(from: inp, using: &buf),
+      stderr: Data.read(from: inp, using: &buf)
+    )
+  }
+
+  public func write(to out: OutputPort) {
+    stdout.write(to: out)
+    stderr.write(to: out)
   }
 }
 
@@ -440,24 +507,10 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(installExamples())
   }
 
-  public func installPackage(_ source: String) -> Future<String, Void> {
-    return impl.send(
-      writeProc: { (out: OutputPort) in
-        UVarint(0x000a).write(to: out)
-        source.write(to: out)
-      },
-      readProc: { (inp: InputPort, buf: inout Data) -> Void in }
-    )
-  }
-
-  public func installPackage(_ source: String) async throws -> Void {
-    return try await FutureUtil.asyncify(installPackage(source))
-  }
-
   public func listFiles(atPath root: String) -> Future<String, [FilesystemEntry]> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x000b).write(to: out)
+        UVarint(0x000a).write(to: out)
         root.write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> [FilesystemEntry] in
@@ -473,7 +526,7 @@ public final class Backend: Sendable {
   public func listInstalledPackages() -> Future<String, [InstalledPackage]> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x000c).write(to: out)
+        UVarint(0x000b).write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> [InstalledPackage] in
         return [InstalledPackage].read(from: inp, using: &buf)
@@ -488,7 +541,7 @@ public final class Backend: Sendable {
   public func makeTempPath() -> Future<String, String> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x000d).write(to: out)
+        UVarint(0x000c).write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> String in
         return String.read(from: inp, using: &buf)
@@ -503,7 +556,7 @@ public final class Backend: Sendable {
   public func markOnExecutorStepInstalled() -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x000e).write(to: out)
+        UVarint(0x000d).write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> Void in }
     )
@@ -511,6 +564,19 @@ public final class Backend: Sendable {
 
   public func markOnExecutorStepInstalled() async throws -> Void {
     return try await FutureUtil.asyncify(markOnExecutorStepInstalled())
+  }
+
+  public func markOnInstallStepInstalled() -> Future<String, Void> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x000e).write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> Void in }
+    )
+  }
+
+  public func markOnInstallStepInstalled() async throws -> Void {
+    return try await FutureUtil.asyncify(markOnInstallStepInstalled())
   }
 
   public func readFile(atPath path: String) -> Future<String, String> {
@@ -587,10 +653,26 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(searchPackages(query))
   }
 
-  public func stepExecution(_ id: UVarint) -> Future<String, ExecutionStep> {
+  public func startInstallPackage(_ source: String) -> Future<String, UVarint> {
     return impl.send(
       writeProc: { (out: OutputPort) in
         UVarint(0x0014).write(to: out)
+        source.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> UVarint in
+        return UVarint.read(from: inp, using: &buf)
+      }
+    )
+  }
+
+  public func startInstallPackage(_ source: String) async throws -> UVarint {
+    return try await FutureUtil.asyncify(startInstallPackage(source))
+  }
+
+  public func stepExecution(_ id: UVarint) -> Future<String, ExecutionStep> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0015).write(to: out)
         id.write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> ExecutionStep in
@@ -603,10 +685,26 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(stepExecution(id))
   }
 
+  public func stepInstall(_ id: UVarint) -> Future<String, InstallStep> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0016).write(to: out)
+        id.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> InstallStep in
+        return InstallStep.read(from: inp, using: &buf)
+      }
+    )
+  }
+
+  public func stepInstall(_ id: UVarint) async throws -> InstallStep {
+    return try await FutureUtil.asyncify(stepInstall(id))
+  }
+
   public func stopExecution(_ id: UVarint) -> Future<String, Void> {
     return impl.send(
       writeProc: { (out: OutputPort) in
-        UVarint(0x0015).write(to: out)
+        UVarint(0x0017).write(to: out)
         id.write(to: out)
       },
       readProc: { (inp: InputPort, buf: inout Data) -> Void in }
@@ -617,8 +715,31 @@ public final class Backend: Sendable {
     return try await FutureUtil.asyncify(stopExecution(id))
   }
 
+  public func stopInstall(_ id: UVarint) -> Future<String, Void> {
+    return impl.send(
+      writeProc: { (out: OutputPort) in
+        UVarint(0x0018).write(to: out)
+        id.write(to: out)
+      },
+      readProc: { (inp: InputPort, buf: inout Data) -> Void in }
+    )
+  }
+
+  public func stopInstall(_ id: UVarint) async throws -> Void {
+    return try await FutureUtil.asyncify(stopInstall(id))
+  }
+
   public func installCallback(onExecutorStep proc: @escaping @Sendable (UVarint) -> Void) -> Future<String, Void> {
     return NoiseBackend.installCallback(id: 0, rpc: self.installCallback(internalWithId:andAddr:)) { inp in
+      var buf = Data(count: 8*1024)
+      proc(
+        UVarint.read(from: inp, using: &buf)
+      )
+    }
+  }
+
+  public func installCallback(onInstallStep proc: @escaping @Sendable (UVarint) -> Void) -> Future<String, Void> {
+    return NoiseBackend.installCallback(id: 1, rpc: self.installCallback(internalWithId:andAddr:)) { inp in
       var buf = Data(count: 8*1024)
       proc(
         UVarint.read(from: inp, using: &buf)

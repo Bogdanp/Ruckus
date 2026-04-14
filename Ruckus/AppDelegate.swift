@@ -25,6 +25,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         Logger.backend.error("\(#function): failed to install executor step callback: \(error)")
       }
     }
+    Task {
+      do {
+        try await Backend.ensureInstallStepInstalled()
+      } catch {
+        Logger.backend.error("\(#function): failed to install install step callback: \(error)")
+      }
+    }
     return true
   }
 }
