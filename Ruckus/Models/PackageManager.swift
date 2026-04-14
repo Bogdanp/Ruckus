@@ -65,7 +65,7 @@ class PackageManager {
       let id = try await Backend.shared.startInstallPackage(source)
       installId = id
       var failureMessage: String?
-      for try await step in InstallStepper.shared.steps(for: id) {
+      for try await step in BackendSteppers.install.steps(for: id) {
         appendChunk(installStdoutBuffer.decode(step.output.stdout), stream: .stdout)
         appendChunk(installStderrBuffer.decode(step.output.stderr), stream: .stderr)
         if case .failed(_, let message) = step {

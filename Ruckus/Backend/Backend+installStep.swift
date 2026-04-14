@@ -4,7 +4,7 @@ extension Backend {
   private static let installStepReady: Future<String, Void> = {
     Backend.shared.installCallback(onInstallStep: { installId in
       Task { @MainActor in
-        InstallStepper.shared.notify(installId: installId)
+        BackendSteppers.install.notify(id: installId)
       }
     }).andThen { _ in
       Backend.shared.markOnInstallStepInstalled()

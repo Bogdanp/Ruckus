@@ -12,7 +12,7 @@ final class ExecutionService {
     Task {
       var result: ExecutionResult
       do {
-        for try await step in ExecutionStepper.shared.steps(for: executionId) {
+        for try await step in BackendSteppers.execution.steps(for: executionId) {
           registry.withBuffers(for: executionId) { stdout, stderr in
             let stdoutText = stdout.decode(step.output.stdout)
             if !stdoutText.isEmpty {
