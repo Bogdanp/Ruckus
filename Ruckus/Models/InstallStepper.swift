@@ -17,13 +17,19 @@ final class InstallStepper {
   /// The stream yields the first step immediately (without waiting for a
   /// callback), then one step per subsequent backend notification.  The
   /// stream finishes after yielding a `.done` or `.failed` step.
+  ///
+  /// Signals coalesce via `bufferingNewest(1)` so a flurry of per-byte
+  /// callouts collapses into a single step fetch.
   func steps(for installId: UInt64) -> AsyncThrowingStream<InstallStep, Error> {
-    let (signalStream, signalContinuation) = AsyncStream<Void>.makeStream()
+    let (signalStream, signalContinuation) = AsyncStream<Void>.makeStream(
+      bufferingPolicy: .bufferingNewest(1)
+    )
     signals[installId] = signalContinuation
     signalContinuation.yield() // trigger the first step
 
     return AsyncThrowingStream { continuation in
       let task = Task {
+        defer { signalContinuation.finish() }
         do {
           for await _ in signalStream {
             let step = try await Backend.shared.stepInstall(installId)

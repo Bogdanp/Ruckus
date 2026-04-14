@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import os
 
 @MainActor @Observable
@@ -10,9 +11,12 @@ class PackageManager {
   private(set) var isLoadingInstalled = false
   private(set) var isSearching = false
   private(set) var activeOperations: Set<String> = []
-  private(set) var installLog: String = ""
-  private(set) var installingSource: String?
+  private(set) var installSource: String?
+  private(set) var installLog: NSMutableAttributedString = NSMutableAttributedString()
+  private(set) var installLogVersion: UInt64 = 0
   private var installId: UInt64?
+  private var installStdoutBuffer = OutputBuffer()
+  private var installStderrBuffer = OutputBuffer()
   var alertMessage: String?
 
   var manualPackages: [InstalledPackage] {
@@ -38,7 +42,6 @@ class PackageManager {
       installedPackages = try await Backend.shared.listInstalledPackages()
         .sorted { $0.name < $1.name }
     } catch is CancellationError {
-      // View disappeared during load — not an error.
     } catch {
       alertMessage = "Failed to load packages: \(error.localizedDescription)"
       Logger.backend.warning("loadInstalled: \(error)")
@@ -48,11 +51,14 @@ class PackageManager {
 
   func install(source: String) async {
     activeOperations.insert(source)
-    installingSource = source
-    installLog = ""
+    installSource = source
+    installLog = NSMutableAttributedString()
+    installLogVersion = 0
+    installStdoutBuffer = OutputBuffer()
+    installStderrBuffer = OutputBuffer()
     defer {
       activeOperations.remove(source)
-      installingSource = nil
+      installSource = nil
       installId = nil
     }
     do {
@@ -60,17 +66,22 @@ class PackageManager {
       installId = id
       var failureMessage: String?
       for try await step in InstallStepper.shared.steps(for: id) {
-        appendOutput(step.output)
+        appendChunk(installStdoutBuffer.decode(step.output.stdout), stream: .stdout)
+        appendChunk(installStderrBuffer.decode(step.output.stderr), stream: .stderr)
         if case .failed(_, let message) = step {
           failureMessage = message
         }
+        if step.isTerminal {
+          appendChunk(installStdoutBuffer.flush(), stream: .stdout)
+          appendChunk(installStderrBuffer.flush(), stream: .stderr)
+        }
       }
       if let failureMessage {
-        throw InstallError.failed(failureMessage)
+        alertMessage = "Failed to install \(source): \(failureMessage)"
+      } else {
+        await loadInstalled()
       }
-      await loadInstalled()
     } catch is CancellationError {
-      // User cancelled — not an error.
     } catch {
       alertMessage = "Failed to install \(source): \(error.localizedDescription)"
       Logger.backend.warning("installPackage: \(error)")
@@ -125,22 +136,19 @@ class PackageManager {
     }
   }
 
-  private func appendOutput(_ output: InstallOutput) {
-    if !output.stdout.isEmpty, let chunk = String(data: output.stdout, encoding: .utf8) {
-      installLog += chunk
-    }
-    if !output.stderr.isEmpty, let chunk = String(data: output.stderr, encoding: .utf8) {
-      installLog += chunk
-    }
-  }
-}
+  private enum LogStream { case stdout, stderr }
 
-enum InstallError: LocalizedError {
-  case failed(String)
-
-  var errorDescription: String? {
-    switch self {
-    case .failed(let message): return message
+  private func appendChunk(_ text: String, stream: LogStream) {
+    guard !text.isEmpty else { return }
+    let color: UIColor = switch stream {
+    case .stdout: .label
+    case .stderr: .systemRed
     }
+    let attrs: [NSAttributedString.Key: Any] = [
+      .foregroundColor: color,
+      .font: UIFont.monospacedSystemFont(ofSize: UIFont.smallSystemFontSize, weight: .regular)
+    ]
+    installLog.append(NSAttributedString(string: text, attributes: attrs))
+    installLogVersion &+= 1
   }
 }

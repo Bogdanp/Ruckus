@@ -155,6 +155,10 @@
                  (if thread (thread-dead-evt thread) never-evt)
                  (lambda (_)
                    (struct-define install-state st)
+                   ;; Drain any remaining buffered output before tearing
+                   ;; down the pipes via the custodian.
+                   (copy-bytes-avail stdout pending-stdout)
+                   (copy-bytes-avail stderr pending-stderr)
                    (custodian-shutdown-all custodian)
                    (define updated-install
                      (struct-copy
