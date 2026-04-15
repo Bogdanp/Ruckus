@@ -6,6 +6,7 @@
          "executor.rkt"
          "filesystem.rkt"
          "format.rkt"
+         "installer.rkt"
          "package.rkt")
 
 (provide
