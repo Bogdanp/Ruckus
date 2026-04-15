@@ -7,7 +7,8 @@
          racket/hash
          racket/match
          ruckus/openssl
-         struct-define)
+         struct-define
+         "port.rkt")
 
 (provide
  (record-out CatalogPackage)
@@ -81,8 +82,6 @@
   (for/list ([name (in-list (get-all-pkg-names-from-catalogs))]
              #:when (regexp-match? (format "^(?i:~a)" (regexp-quote query)) name))
     (CatalogPackage name)))
-
-;; --- Streaming install ---------------------------------------------------
 
 (struct install-state (sequence installs))
 (struct install (id source custodian thread error-box stdout stderr pending-stdout pending-stderr gc-deadline))
@@ -222,15 +221,6 @@
         (thread-wait thread))
       (custodian-shutdown-all custodian)
       (values st (void)))))
-
-(define (copy-bytes-avail in out)
-  (define buf (make-bytes 4096))
-  (let loop ()
-    (define n-read (read-bytes-avail!* buf in))
-    (unless (or (eof-object? n-read)
-                (zero? n-read))
-      (write-bytes buf out 0 n-read)
-      (loop))))
 
 (define the-installer
   (installer))
