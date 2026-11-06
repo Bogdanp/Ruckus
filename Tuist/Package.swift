@@ -15,7 +15,12 @@ let packageSettings = PackageSettings(
     "Noise": ["ENABLE_MODULE_VERIFIER": "YES"],
     "NoiseBackend": ["ENABLE_MODULE_VERIFIER": "YES"],
     "NoiseBoot_iOS": ["ENABLE_MODULE_VERIFIER": "YES"],
-    "NoiseSerde": ["ENABLE_MODULE_VERIFIER": "YES"]
+    "NoiseSerde": ["ENABLE_MODULE_VERIFIER": "YES"],
+    // These packages declare iOS deployment targets below 15.0, which
+    // Xcode 27 rejects (the supported range starts at 15.0).
+    "Runestone": ["IPHONEOS_DEPLOYMENT_TARGET": "15.0"],
+    "Semaphore": ["IPHONEOS_DEPLOYMENT_TARGET": "15.0"],
+    "TreeSitter": ["IPHONEOS_DEPLOYMENT_TARGET": "15.0"]
   ]
 )
 #endif

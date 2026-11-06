@@ -16,17 +16,22 @@ final class DocumentObserver {
   /// exit immediately instead of lingering until the old document changes.
   private var generation: UInt = 0
 
+  /// The text view being kept in sync with `currentDocument`. Held here rather
+  /// than captured by the observation closure so the `@Sendable` `onChange`
+  /// callback only captures `self`, which is main-actor isolated.
+  private weak var textView: TextView?
+
   func observeCode(of document: EditorDocument, in textView: TextView) {
     let expectedGeneration = generation
-    weak let weakDocument = document
+    self.textView = textView
     withObservationTracking {
       _ = document.code
-    } onChange: { [weak self, weak textView] in
+    } onChange: { [weak self] in
       Task { @MainActor in
-        guard let self, let textView,
+        guard let self,
               self.generation == expectedGeneration,
-              let document = weakDocument,
-              document === self.currentDocument else { return }
+              let textView = self.textView,
+              let document = self.currentDocument else { return }
         if textView.text != document.code {
           self.onCodeChanged?(textView, document.code)
         }

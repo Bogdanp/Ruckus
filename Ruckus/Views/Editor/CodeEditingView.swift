@@ -154,6 +154,11 @@ struct CodeEditingView: UIViewRepresentable {
 
     private var codeReplacedObserver: (any NSObjectProtocol)?
 
+    /// The text view driven by this coordinator. Held weakly here rather than
+    /// captured by the `@Sendable` observer closures below, which may only
+    /// capture `self` (main-actor isolated) without tripping region isolation.
+    private weak var textView: TextView?
+
     private static let autoPairs: [String: String] = [
       "(": ")", "[": "]", "{": "}", "\"": "\""
     ]
@@ -168,9 +173,10 @@ struct CodeEditingView: UIViewRepresentable {
     }
 
     func startObservingKeyboard(for textView: TextView) {
-      keyboardObserver.startObserving { [weak self, weak textView] _ in
+      self.textView = textView
+      keyboardObserver.startObserving { [weak self] _ in
         MainActor.assumeIsolated {
-          guard let self, let textView else { return }
+          guard let self, let textView = self.textView else { return }
           self.applyAccessoryBar(to: textView)
         }
       }
@@ -197,15 +203,16 @@ struct CodeEditingView: UIViewRepresentable {
       // replace → textViewDidChange → doc.code update — completes before
       // post() returns. Using .main would dispatch asynchronously, leaving
       // a window where doc.code is stale.
+      self.textView = textView
       codeReplacedObserver = NotificationCenter.default.addObserver(
         forName: EditorDocument.codeReplaced,
         object: nil,
         queue: nil
-      ) { [weak self, weak textView] notification in
+      ) { [weak self] notification in
         let doc = notification.object as? EditorDocument
         let code = notification.userInfo?[EditorDocument.codeReplacedKey] as? String
         MainActor.assumeIsolated {
-          guard let self, let textView, let doc, let code,
+          guard let self, let textView = self.textView, let doc, let code,
                 doc === self.documentObserver.currentDocument,
                 code != textView.text
           else { return }
