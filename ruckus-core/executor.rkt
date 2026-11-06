@@ -66,7 +66,6 @@
                  [current-module-name-resolver (make-collects-resolver)]
                  [current-namespace (make-base-empty-namespace)]
                  [current-directory document-dir])
-    (namespace-require 'ruckus/openssl)
     (eval
      (check-module-form
       (with-module-reading-parameterization

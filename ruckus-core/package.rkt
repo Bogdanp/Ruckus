@@ -3,8 +3,7 @@
 (require noise/backend
          noise/serde
          pkg/lib
-         racket/match
-         ruckus/openssl)
+         racket/match)
 
 (provide
  (record-out CatalogPackage)
